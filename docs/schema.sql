@@ -1,7 +1,7 @@
 -- Tournament Management Schema (Copa Fácil Style - Pro v1.2)
 
--- 1. Teams (Centralized)
-CREATE TABLE teams (
+-- 1. Clubs (Centralized)
+CREATE TABLE clubs (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     user_id UUID NOT NULL, -- Link to auth.users
     name TEXT NOT NULL,
@@ -10,13 +10,14 @@ CREATE TABLE teams (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- 2. Players (Centralized, linked to Teams)
+-- 2. Players (Centralized, linked to Clubs)
 CREATE TABLE players (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    team_id UUID REFERENCES teams(id) ON DELETE CASCADE,
+    user_id UUID NOT NULL, -- Link to auth.users
+    team_id UUID REFERENCES clubs(id) ON DELETE CASCADE,
     name TEXT NOT NULL,
     number INTEGER DEFAULT 0,
-    tesserato_id TEXT UNIQUE,
+    player_external_id TEXT UNIQUE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
@@ -34,16 +35,18 @@ CREATE TABLE tournaments (
 -- 4. Tournament Teams (Junction Table)
 CREATE TABLE tournament_teams (
     tournament_id UUID REFERENCES tournaments(id) ON DELETE CASCADE,
-    team_id UUID REFERENCES teams(id) ON DELETE CASCADE,
+    team_id UUID REFERENCES clubs(id) ON DELETE CASCADE,
+    user_id UUID NOT NULL, -- Link to auth.users
     PRIMARY KEY (tournament_id, team_id)
 );
 
 -- 5. Matches
 CREATE TABLE matches (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL, -- Link to auth.users
     tournament_id UUID REFERENCES tournaments(id) ON DELETE CASCADE,
-    team_a_id UUID REFERENCES teams(id) ON DELETE SET NULL,
-    team_b_id UUID REFERENCES teams(id) ON DELETE SET NULL,
+    team_a_id UUID REFERENCES clubs(id) ON DELETE SET NULL,
+    team_b_id UUID REFERENCES clubs(id) ON DELETE SET NULL,
     score_a INTEGER DEFAULT 0,
     score_b INTEGER DEFAULT 0,
     round INTEGER NOT NULL,
@@ -62,6 +65,7 @@ CREATE TABLE matches (
 -- 6. Match Events
 CREATE TABLE match_events (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL, -- Link to auth.users
     match_id UUID REFERENCES matches(id) ON DELETE CASCADE,
     player_id UUID REFERENCES players(id) ON DELETE CASCADE,
     event_type TEXT NOT NULL CHECK (event_type IN ('goal', 'assist')),

@@ -49,7 +49,7 @@ interface Player {
   teamId: string;
   name: string;
   number: number;
-  tesseratoId: string;
+  playerExternalId: string;
 }
 
 export function PublicTournamentView() {
@@ -109,7 +109,7 @@ export function PublicTournamentView() {
           teamId: p.team_id,
           name: p.name,
           number: p.number,
-          tesseratoId: p.tesserato_id
+          playerExternalId: p.player_external_id
         }))
       ));
 

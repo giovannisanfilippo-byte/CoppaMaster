@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Trophy, Award, X, AlertCircle, Save } from 'lucide-react';
+import { Trophy, Award, X, AlertCircle, Save, RotateCcw } from 'lucide-react';
+import { ConfirmModal } from './ConfirmModal';
 
 interface MatchReportFormProps {
   match: any;
@@ -16,6 +17,7 @@ interface MatchReportFormProps {
 export function MatchReportForm({ match, teams, players, events, onUpdateScore, onAddEvent, onRemoveEvent, onClose }: MatchReportFormProps) {
   const [scoreA, setScoreA] = useState(match.scoreA);
   const [scoreB, setScoreB] = useState(match.scoreB);
+  const [isConfirmResetOpen, setIsConfirmResetOpen] = useState(false);
 
   const teamA = teams.find((t: any) => t.id === match.teamAId);
   const teamB = teams.find((t: any) => t.id === match.teamBId);
@@ -34,8 +36,17 @@ export function MatchReportForm({ match, teams, players, events, onUpdateScore, 
     onClose();
   };
 
+  const handleReset = () => {
+    // Clear all events for this match
+    events.forEach((e: any) => onRemoveEvent(e.id));
+    setScoreA(0);
+    setScoreB(0);
+    onUpdateScore(0, 0);
+  };
+
   return (
-    <motion.div 
+    <>
+      <motion.div 
       initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
       className="fixed inset-0 z-[100] bg-slate-900/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-4"
     >
@@ -134,22 +145,40 @@ export function MatchReportForm({ match, teams, players, events, onUpdateScore, 
           </div>
         </div>
 
-        <div className="p-6 border-t border-slate-100 bg-slate-50 flex justify-end gap-3">
+        <div className="p-6 border-t border-slate-100 bg-slate-50 flex justify-between items-center">
           <button 
-            onClick={onClose}
-            className="px-6 py-3 rounded-2xl font-black text-sm text-slate-400 hover:text-slate-600 transition-colors"
+            onClick={() => setIsConfirmResetOpen(true)}
+            className="flex items-center gap-2 px-4 py-2 text-red-500 hover:bg-red-50 rounded-xl text-xs font-bold transition-all"
           >
-            Annulla
+            <RotateCcw className="w-3.5 h-3.5" /> Resetta Risultato
           </button>
-          <button 
-            onClick={handleSave}
-            className="bg-indigo-600 text-white px-8 py-3 rounded-2xl font-black text-sm shadow-xl shadow-indigo-600/20 flex items-center gap-2 hover:bg-indigo-700 transition-all"
-          >
-            <Save className="w-4 h-4" /> Salva Risultato
-          </button>
+          <div className="flex gap-3">
+            <button 
+              onClick={onClose}
+              className="px-6 py-3 rounded-2xl font-black text-sm text-slate-400 hover:text-slate-600 transition-colors"
+            >
+              Annulla
+            </button>
+            <button 
+              onClick={handleSave}
+              className="bg-indigo-600 text-white px-8 py-3 rounded-2xl font-black text-sm shadow-xl shadow-indigo-600/20 flex items-center gap-2 hover:bg-indigo-700 transition-all"
+            >
+              <Save className="w-4 h-4" /> Salva Risultato
+            </button>
+          </div>
         </div>
       </motion.div>
+
+      <ConfirmModal 
+        isOpen={isConfirmResetOpen}
+        onClose={() => setIsConfirmResetOpen(false)}
+        onConfirm={handleReset}
+        title="Resetta Partita"
+        message="Sei sicuro di voler resettare il risultato e tutti i marcatori di questa partita? Questa azione non può essere annullata."
+        confirmLabel="Resetta"
+      />
     </motion.div>
+  </>
   );
 }
 

@@ -20,7 +20,35 @@ export interface PlayerData {
   team_id: string;
   name: string;
   number: number;
-  tesserato_id: string;
+  player_external_id: string;
+  user_id: string;
+}
+
+/**
+ * Uploads a club logo to Supabase Storage.
+ */
+export async function uploadClubLogo(file: File): Promise<string> {
+  const fileExt = file.name.split('.').pop();
+  const fileName = `${Math.random().toString(36).substring(2)}-${Date.now()}.${fileExt}`;
+  const filePath = `logos/${fileName}`;
+
+  const { error: uploadError } = await supabase.storage
+    .from('club-logos')
+    .upload(filePath, file);
+
+  if (uploadError) {
+    if (uploadError.message === 'Bucket not found') {
+      throw new Error('Il bucket "club-logos" non esiste su Supabase. Crealo nella sezione Storage della dashboard.');
+    }
+    console.error('Error uploading logo:', uploadError);
+    throw uploadError;
+  }
+
+  const { data } = supabase.storage
+    .from('club-logos')
+    .getPublicUrl(filePath);
+
+  return data.publicUrl;
 }
 
 /**
@@ -29,7 +57,7 @@ export interface PlayerData {
 export async function saveClub(club: ClubData, players: PlayerData[]) {
   // 1. Insert the club
   const { data: clubData, error: clubError } = await supabase
-    .from('teams')
+    .from('clubs')
     .insert([club])
     .select()
     .single();
@@ -43,7 +71,8 @@ export async function saveClub(club: ClubData, players: PlayerData[]) {
   if (players.length > 0) {
     const playersWithTeamId = players.map(p => ({
       ...p,
-      team_id: clubData.id
+      team_id: clubData.id,
+      user_id: club.user_id
     }));
 
     const { error: playersError } = await supabase
@@ -64,7 +93,7 @@ export async function saveClub(club: ClubData, players: PlayerData[]) {
  */
 export async function fetchClubs(userId: string) {
   const { data, error } = await supabase
-    .from('teams')
+    .from('clubs')
     .select(`
       *,
       players (*)
@@ -96,10 +125,11 @@ export async function saveTournament(tournament: any) {
 /**
  * Saves multiple tournament teams (junction table).
  */
-export async function saveTournamentTeams(tournamentId: string, teamIds: string[]) {
+export async function saveTournamentTeams(tournamentId: string, teamIds: string[], userId: string) {
   const records = teamIds.map(teamId => ({
     tournament_id: tournamentId,
-    team_id: teamId
+    team_id: teamId,
+    user_id: userId
   }));
 
   const { error } = await supabase
@@ -179,7 +209,7 @@ export async function fetchTournaments(userId: string) {
  */
 export async function fetchTournamentData(tournamentId: string) {
   const [teamsRes, matchesRes, eventsRes] = await Promise.all([
-    supabase.from('tournament_teams').select('teams(*, players(*))').eq('tournament_id', tournamentId),
+    supabase.from('tournament_teams').select('clubs(*, players(*))').eq('tournament_id', tournamentId),
     supabase.from('matches').select('*').eq('tournament_id', tournamentId).order('round', { ascending: true }),
     supabase.from('match_events').select('*').in('match_id', 
       (await supabase.from('matches').select('id').eq('tournament_id', tournamentId)).data?.map(m => m.id) || []
@@ -191,7 +221,7 @@ export async function fetchTournamentData(tournamentId: string) {
   if (eventsRes.error) throw eventsRes.error;
 
   return {
-    teams: teamsRes.data.map((tt: any) => tt.teams),
+    teams: teamsRes.data.map((tt: any) => tt.clubs),
     matches: matchesRes.data,
     events: eventsRes.data
   };
@@ -214,7 +244,7 @@ export async function deleteTournamentDB(id: string) {
  */
 export async function saveTeamDB(team: any) {
   const { data, error } = await supabase
-    .from('teams')
+    .from('clubs')
     .insert([team])
     .select()
     .single();
@@ -228,11 +258,36 @@ export async function saveTeamDB(team: any) {
  */
 export async function deleteTeamDB(id: string) {
   const { error } = await supabase
-    .from('teams')
+    .from('clubs')
     .delete()
     .eq('id', id);
 
   if (error) throw error;
+}
+
+/**
+ * Checks if a player with the given player_external_id already exists and returns the club name.
+ */
+export async function checkPlayerExistence(playerExternalId: string) {
+  const { data, error } = await supabase
+    .from('players')
+    .select(`
+      id,
+      clubs (name)
+    `)
+    .eq('player_external_id', playerExternalId)
+    .maybeSingle();
+
+  if (error) {
+    console.error('Error checking player existence:', error);
+    throw error;
+  }
+
+  if (data) {
+    return (data.clubs as any)?.name || 'un altro club';
+  }
+
+  return null;
 }
 
 /**

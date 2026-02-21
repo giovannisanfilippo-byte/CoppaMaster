@@ -13,6 +13,7 @@ import { AssistTable } from './components/AssistTable';
 import { StandingsTable } from './components/StandingsTable';
 import { ClubsPage } from './components/ClubsPage';
 import { PublicTournamentView } from './components/PublicTournamentView';
+import { ConfirmModal } from './components/ConfirmModal';
 import { supabase, fetchClubs, saveClub, fetchTournaments, saveTournament, saveMatches, saveTournamentTeams, updateMatchScoreDB, saveMatchEventDB, deleteMatchEventDB, fetchTournamentData, deleteTournamentDB, saveTeamDB, deleteTeamDB, savePlayerDB, updatePlayerDB, deletePlayerDB } from './utils/supabase';
 
 // --- Types ---
@@ -46,7 +47,7 @@ interface Player {
   teamId: string;
   name: string;
   number: number;
-  tesseratoId: string;
+  playerExternalId: string;
 }
 
 interface Match {
@@ -98,6 +99,17 @@ function PrivateApp() {
   const [activeTab, setActiveTab] = useState<'matches' | 'standings' | 'scorers' | 'assists' | 'bracket'>('matches');
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [user, setUser] = useState<any>(null);
+  const [confirmModal, setConfirmModal] = useState<{ 
+    isOpen: boolean; 
+    title: string; 
+    message: string; 
+    onConfirm: () => void; 
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: () => {}
+  });
 
   // --- Auth & Data Fetching ---
   useEffect(() => {
@@ -142,7 +154,7 @@ function PrivateApp() {
           teamId: p.team_id,
           name: p.name,
           number: p.number,
-          tesseratoId: p.tesserato_id
+          playerExternalId: p.player_external_id
         }))
       );
 
@@ -279,7 +291,7 @@ function PrivateApp() {
 
     try {
       // 1. Save Tournament Teams
-      await saveTournamentTeams(activeTournamentId, currentTeams.map(t => t.id));
+      await saveTournamentTeams(activeTournamentId, currentTeams.map(t => t.id), user.id);
 
       // 2. Save Matches
       const matchesToSave = newMatches.map(m => ({
@@ -293,7 +305,8 @@ function PrivateApp() {
         is_return_match: m.isReturnMatch,
         status: m.status,
         next_match_id: m.nextMatchId,
-        position_in_round: m.positionInRound
+        position_in_round: m.positionInRound,
+        user_id: user.id
       }));
 
       const savedMatches = await saveMatches(matchesToSave);
@@ -416,30 +429,37 @@ function PrivateApp() {
   };
 
   const deleteTournament = async (id: string) => {
-    if (!confirm('Sei sicuro di voler eliminare questo torneo? Tutti i dati verranno persi.')) return;
-    try {
-      await deleteTournamentDB(id);
-      setTournaments(tournaments.filter(t => t.id !== id));
-      setMatches(matches.filter(m => m.tournamentId !== id));
-      if (activeTournamentId === id) {
-        setActiveTournamentId(null);
-        setView('home');
+    const tournamentToDelete = tournaments.find(t => t.id === id);
+    setConfirmModal({
+      isOpen: true,
+      title: 'Elimina Torneo',
+      message: `Sei sicuro di voler eliminare il torneo "${tournamentToDelete?.name}"? Questa azione è irreversibile e tutti i dati (partite, eventi, classifiche) verranno persi.`,
+      onConfirm: async () => {
+        try {
+          await deleteTournamentDB(id);
+          setTournaments(tournaments.filter(t => t.id !== id));
+          setMatches(matches.filter(m => m.tournamentId !== id));
+          if (activeTournamentId === id) {
+            setActiveTournamentId(null);
+            setView('home');
+          }
+        } catch (error) {
+          console.error('Error deleting tournament:', error);
+          alert('Errore nell\'eliminazione del torneo.');
+        }
       }
-    } catch (error) {
-      console.error('Error deleting tournament:', error);
-      alert('Errore nell\'eliminazione del torneo.');
-    }
+    });
   };
 
   // --- Handlers: Roster ---
-  const addPlayer = (teamId: string, name: string, number: number, tesseratoId: string) => {
-    if (!name || !tesseratoId) return;
+  const addPlayer = (teamId: string, name: string, number: number, playerExternalId: string) => {
+    if (!name || !playerExternalId) return;
     const newPlayer: Player = {
       id: Math.random().toString(36).substr(2, 9),
       teamId,
       name,
       number,
-      tesseratoId
+      playerExternalId
     };
     setPlayers([...players, newPlayer]);
   };
@@ -449,11 +469,19 @@ function PrivateApp() {
   };
 
   const removePlayer = (id: string) => {
+    const playerToDelete = players.find(p => p.id === id);
     const hasGoals = events.some(e => e.playerId === id && e.type === 'goal');
-    if (hasGoals) {
-      if (!confirm("Questo giocatore ha segnato dei gol. Sei sicuro di volerlo eliminare? I suoi dati rimarranno nei referti.")) return;
-    }
-    setPlayers(players.filter(p => p.id !== id));
+    
+    setConfirmModal({
+      isOpen: true,
+      title: 'Elimina Giocatore',
+      message: hasGoals 
+        ? `Questo giocatore (${playerToDelete?.name}) ha segnato dei gol in questo torneo. Sei sicuro di volerlo eliminare? I suoi dati rimarranno nei referti storici ma non sarà più disponibile per nuovi eventi.`
+        : `Sei sicuro di voler eliminare il giocatore "${playerToDelete?.name}"?`,
+      onConfirm: () => {
+        setPlayers(players.filter(p => p.id !== id));
+      }
+    });
   };
 
   // --- Handlers: Match Report ---
@@ -477,7 +505,8 @@ function PrivateApp() {
       const savedEvent = await saveMatchEventDB({
         match_id: matchId,
         player_id: playerId,
-        event_type: type
+        event_type: type,
+        user_id: user.id
       });
 
       const newEvent: MatchEvent = {
@@ -648,37 +677,71 @@ function PrivateApp() {
           }
         }}
         onDeleteTeam={async (id) => {
-          try {
-            await deleteTeamDB(id);
-            setTeams(teams.filter(t => t.id !== id));
-            setTournamentTeams(tournamentTeams.filter(tt => tt.teamId !== id));
-          } catch (error) {
-            console.error('Error deleting team:', error);
-          }
+          const teamToDelete = teams.find(t => t.id === id);
+          setConfirmModal({
+            isOpen: true,
+            title: 'Elimina Club',
+            message: `Sei sicuro di voler eliminare il club "${teamToDelete?.name}"? Questa azione è irreversibile e tutti i tesserati associati verranno rimossi.`,
+            onConfirm: async () => {
+              try {
+                await deleteTeamDB(id);
+                setTeams(teams.filter(t => t.id !== id));
+                setTournamentTeams(tournamentTeams.filter(tt => tt.teamId !== id));
+              } catch (error) {
+                console.error('Error deleting team:', error);
+              }
+            }
+          });
         }}
-        onAddPlayer={async (teamId, name, number, tesseratoId) => {
+        onAddPlayer={async (teamId, name, number, playerExternalId) => {
+          if (!user) return;
           try {
-            const savedPlayer = await savePlayerDB({ team_id: teamId, name, number, tesserato_id: tesseratoId });
-            setPlayers([...players, { id: savedPlayer.id, teamId: savedPlayer.team_id, name: savedPlayer.name, number: savedPlayer.number, tesseratoId: savedPlayer.tesserato_id }]);
+            const savedPlayer = await savePlayerDB({ 
+              team_id: teamId, 
+              name, 
+              number, 
+              player_external_id: playerExternalId,
+              user_id: user.id
+            });
+            setPlayers([...players, { 
+              id: savedPlayer.id, 
+              teamId: savedPlayer.team_id, 
+              name: savedPlayer.name, 
+              number: savedPlayer.number, 
+              playerExternalId: savedPlayer.player_external_id 
+            }]);
           } catch (error) {
             console.error('Error saving player:', error);
           }
         }}
         onUpdatePlayer={async (id, updates) => {
           try {
-            await updatePlayerDB(id, updates);
+            const dbUpdates: any = { ...updates };
+            if (updates.playerExternalId) {
+              dbUpdates.player_external_id = updates.playerExternalId;
+              delete dbUpdates.playerExternalId;
+            }
+            await updatePlayerDB(id, dbUpdates);
             setPlayers(players.map(p => p.id === id ? { ...p, ...updates } : p));
           } catch (error) {
             console.error('Error updating player:', error);
           }
         }}
         onRemovePlayer={async (id) => {
-          try {
-            await deletePlayerDB(id);
-            setPlayers(players.filter(p => p.id !== id));
-          } catch (error) {
-            console.error('Error deleting player:', error);
-          }
+          const playerToDelete = players.find(p => p.id === id);
+          setConfirmModal({
+            isOpen: true,
+            title: 'Elimina Tesserato',
+            message: `Sei sicuro di voler eliminare il tesserato "${playerToDelete?.name}"? Questa azione è irreversibile.`,
+            onConfirm: async () => {
+              try {
+                await deletePlayerDB(id);
+                setPlayers(players.filter(p => p.id !== id));
+              } catch (error) {
+                console.error('Error deleting player:', error);
+              }
+            }
+          });
         }}
         onBack={() => setView('home')}
       />
@@ -959,6 +1022,15 @@ function PrivateApp() {
           />
         )}
       </AnimatePresence>
+
+      {/* Global Modals */}
+      <ConfirmModal 
+        isOpen={confirmModal.isOpen}
+        onClose={() => setConfirmModal({ ...confirmModal, isOpen: false })}
+        onConfirm={confirmModal.onConfirm}
+        title={confirmModal.title}
+        message={confirmModal.message}
+      />
     </div>
   );
 }
@@ -1309,7 +1381,7 @@ function RosterView({ teams, players, onAddPlayer, onUpdatePlayer, onRemovePlaye
   const [selectedTeamId, setSelectedTeamId] = useState(teams[0]?.id);
   const [name, setName] = useState('');
   const [number, setNumber] = useState(0);
-  const [tesseratoId, setTesseratoId] = useState('');
+  const [playerExternalId, setPlayerExternalId] = useState('');
   const [editingPlayerId, setEditingPlayerId] = useState<string | null>(null);
 
   const teamPlayers = players.filter((p: any) => p.teamId === selectedTeamId);
@@ -1370,21 +1442,21 @@ function RosterView({ teams, players, onAddPlayer, onUpdatePlayer, onRemovePlaye
                 <input 
                   placeholder="ID Tesserato"
                   className="p-4 bg-slate-50 rounded-2xl border border-slate-200 outline-none focus:ring-2 focus:ring-indigo-500 font-bold"
-                  value={tesseratoId}
-                  onChange={e => setTesseratoId(e.target.value)}
+                  value={playerExternalId}
+                  onChange={e => setPlayerExternalId(e.target.value)}
                 />
               </div>
               <div className="flex gap-2">
                 {editingPlayerId ? (
                   <>
                     <button 
-                      onClick={() => { onUpdatePlayer(editingPlayerId, { name, number, tesseratoId }); setEditingPlayerId(null); setName(''); setNumber(0); setTesseratoId(''); }}
+                      onClick={() => { onUpdatePlayer(editingPlayerId, { name, number, playerExternalId }); setEditingPlayerId(null); setName(''); setNumber(0); setPlayerExternalId(''); }}
                       className="flex-1 bg-indigo-600 text-white font-black py-4 rounded-2xl hover:bg-indigo-700 transition-all"
                     >
                       Salva Modifiche
                     </button>
                     <button 
-                      onClick={() => { setEditingPlayerId(null); setName(''); setNumber(0); setTesseratoId(''); }}
+                      onClick={() => { setEditingPlayerId(null); setName(''); setNumber(0); setPlayerExternalId(''); }}
                       className="px-6 bg-slate-100 text-slate-400 font-black py-4 rounded-2xl hover:bg-slate-200 transition-all"
                     >
                       Annulla
@@ -1392,7 +1464,7 @@ function RosterView({ teams, players, onAddPlayer, onUpdatePlayer, onRemovePlaye
                   </>
                 ) : (
                   <button 
-                    onClick={() => { onAddPlayer(selectedTeamId, name, number, tesseratoId); setName(''); setNumber(0); setTesseratoId(''); }}
+                    onClick={() => { onAddPlayer(selectedTeamId, name, number, playerExternalId); setName(''); setNumber(0); setPlayerExternalId(''); }}
                     className="w-full bg-slate-900 text-white font-black py-4 rounded-2xl hover:bg-slate-800 transition-all"
                   >
                     Aggiungi alla Rosa
@@ -1415,7 +1487,7 @@ function RosterView({ teams, players, onAddPlayer, onUpdatePlayer, onRemovePlaye
                       </div>
                       <div>
                         <div className="font-bold text-slate-800">{p.name}</div>
-                        <div className="text-[10px] font-bold text-slate-400 uppercase">ID: {p.tesseratoId}</div>
+                        <div className="text-[10px] font-bold text-slate-400 uppercase">ID: {p.playerExternalId}</div>
                       </div>
                     </div>
                     <div className="flex gap-2">
@@ -1427,7 +1499,7 @@ function RosterView({ teams, players, onAddPlayer, onUpdatePlayer, onRemovePlaye
                         {teams.map((t: any) => <option key={t.id} value={t.id}>{t.name}</option>)}
                       </select>
                       <button 
-                        onClick={() => { setEditingPlayerId(p.id); setName(p.name); setNumber(p.number); setTesseratoId(p.tesseratoId); }}
+                        onClick={() => { setEditingPlayerId(p.id); setName(p.name); setNumber(p.number); setPlayerExternalId(p.playerExternalId); }}
                         className="p-2 text-slate-300 hover:text-indigo-600 transition-colors"
                       >
                         <Settings className="w-4 h-4" />
