@@ -1,84 +1,74 @@
 import React, { useState, useEffect } from 'react';
-import { supabase } from './supabaseClient'; 
+import { supabase } from "../utils/supabase";
 
 const ClubsPage = () => {
-  const [nomeSquadra, setNomeSquadra] = useState('');
-  const [listaSquadre, setListaSquadre] = useState([]);
-  const [caricamento, setCaricamento] = useState(true);
+  const [nomeSquadra, setNomeSquadra] = useState("");
+  const [clubs, setClubs] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  // Carica le squadre
-  const caricaSquadre = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('clubs')
-        .select('*')
-        .order('name', { ascending: true });
-      
-      if (error) throw error;
-      setListaSquadre(data || []);
-    } catch (err) {
-      console.error("Errore nel caricamento:", err.message);
-    } finally {
-      setCaricamento(false);
+  // FUNZIONE PER CARICARE I DATI
+  const fetchClubs = async () => {
+    setLoading(true);
+    console.log("Sto provando a leggere dalla tabella 'teams'...");
+    
+    const { data, error } = await supabase
+      .from('teams') // Assicurati che su Supabase si chiami 'teams'
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error("Errore di lettura:", error.message);
+    } else {
+      console.log("Dati ricevuti dal DB:", data);
+      setClubs(data || []);
     }
+    setLoading(false);
   };
 
   useEffect(() => {
-    caricaSquadre();
+    fetchClubs();
   }, []);
 
-  // Salva una nuova squadra
-  const salvaSquadra = async (e) => {
+  // FUNZIONE PER SALVARE
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!nomeSquadra.trim()) return;
+    if (!nomeSquadra) return;
 
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        alert("Devi essere loggato!");
-        return;
-      }
+    const { error } = await supabase
+      .from('teams')
+      .insert([{ name: nomeSquadra }]);
 
-      const { error } = await supabase
-        .from('clubs')
-        .insert([{ name: nomeSquadra, user_id: user.id }]);
-
-      if (error) throw error;
-
-      setNomeSquadra('');
-      caricaSquadre();
-      alert("Squadra salvata!");
-    } catch (err) {
-      alert("Errore durante il salvataggio: " + err.message);
+    if (error) {
+      alert("Errore salvataggio: " + error.message);
+    } else {
+      setNomeSquadra("");
+      fetchClubs(); // Ricarica la lista dopo il salvataggio
     }
   };
 
   return (
-    <div style={{ padding: '40px', maxWidth: '800px', margin: '0 auto', fontFamily: 'sans-serif' }}>
-      <h1 style={{ fontSize: '24px', fontWeight: 'bold', marginBottom: '20px' }}>Anagrafica Club</h1>
-      
-      <form onSubmit={salvaSquadra} style={{ marginBottom: '30px', display: 'flex', gap: '10px' }}>
+    <div style={{ padding: '20px' }}>
+      <h2>Anagrafica Club</h2>
+      <form onSubmit={handleSave} style={{ marginBottom: '20px' }}>
         <input 
-          type="text" 
           value={nomeSquadra} 
           onChange={(e) => setNomeSquadra(e.target.value)}
-          placeholder="Inserisci nome squadra (es. Real Madrid)"
-          style={{ flex: 1, padding: '10px', borderRadius: '4px', border: '1px solid #ccc' }}
+          placeholder="Nome del club..."
+          style={{ padding: '8px', color: 'black' }}
         />
-        <button type="submit" style={{ padding: '10px 20px', backgroundColor: '#0070f3', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>
-          Salva
-        </button>
+        <button type="submit" style={{ marginLeft: '10px', padding: '8px' }}>Salva</button>
       </form>
 
-      <h2 style={{ fontSize: '20px', marginBottom: '15px' }}>Squadre registrate:</h2>
-      {caricamento ? <p>Caricamento in corso...</p> : (
-        <ul style={{ listStyle: 'none', padding: 0 }}>
-          {listaSquadre.map(squadra => (
-            <li key={squadra.id} style={{ padding: '15px', borderBottom: '1px solid #eee', display: 'flex', justifyContent: 'space-between' }}>
-              <strong>{squadra.name}</strong>
+      {loading ? (
+        <p>Caricamento in corso...</p>
+      ) : (
+        <ul>
+          {clubs.length === 0 && <p>Nessun club trovato nel database.</p>}
+          {clubs.map((club) => (
+            <li key={club.id} style={{ marginBottom: '5px' }}>
+              {club.name} <small>(ID: {club.id.substring(0,5)}...)</small>
             </li>
           ))}
-          {listaSquadre.length === 0 && <p>Nessuna squadra trovata. Aggiungine una!</p>}
         </ul>
       )}
     </div>
