@@ -15,6 +15,7 @@ import { ClubsPage } from './components/ClubsPage';
 import { PublicTournamentView } from './components/PublicTournamentView';
 import { ConfirmModal } from './components/ConfirmModal';
 import { supabase, fetchClubs, saveClub, fetchTournaments, saveTournament, saveMatches, saveTournamentTeams, updateMatchScoreDB, saveMatchEventDB, deleteMatchEventDB, fetchTournamentData, deleteTournamentDB, saveTeamDB, deleteTeamDB, savePlayerDB, updatePlayerDB, deletePlayerDB } from './utils/supabase';
+import { GroupTournaments } from './components/GroupTournaments';
 
 // --- Types ---
 type TournamentType = 'league' | 'knockout';
@@ -85,7 +86,7 @@ function PrivateApp() {
   // --- State ---
   const navigate = useNavigate();
   const location = useLocation();
-  const [view, setView] = useState<'home' | 'setup' | 'teams' | 'roster' | 'dashboard' | 'clubs'>('home');
+  const [view, setView] = useState<'home' | 'setup' | 'teams' | 'roster' | 'dashboard' | 'clubs' | 'gironi'>('home');
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [activeTournamentId, setActiveTournamentId] = useState<string | null>(null);
   
@@ -748,6 +749,14 @@ function PrivateApp() {
     );
   }
 
+ if (view === 'gironi') {
+    return (
+      <GroupTournaments 
+        onBack={() => setView('home')} 
+      />
+    );
+  } 
+
   if (view === 'teams') {
     return (
       <TeamRegistrationView 
@@ -761,7 +770,7 @@ function PrivateApp() {
       />
     );
   }
-
+  
   if (view === 'roster') {
     return (
       <RosterView 
