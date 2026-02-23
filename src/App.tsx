@@ -1157,12 +1157,21 @@ function HomeView({ tournaments, onSelect, onCreate, onDelete, onToggleStatus, s
             >
               Logout
             </button>
-            <button 
+
+           <button 
               onClick={() => setView('clubs')}
               className="bg-white text-slate-900 border border-slate-200 px-6 py-3 rounded-2xl font-black text-sm shadow-sm flex items-center gap-2 hover:bg-slate-50 transition-colors"
             >
               <ShieldCheck className="w-4 h-4" /> Anagrafica Club
             </button>
+
+            <button 
+              onClick={() => setView('gironi')}
+              className="bg-blue-600 text-white px-6 py-3 rounded-2xl font-black text-sm shadow-xl shadow-blue-500/20 flex items-center gap-2 hover:bg-blue-700 transition-all"
+            >
+              <Trophy className="w-4 h-4" /> Torneo a Gironi
+            </button>
+
             <button 
               onClick={onCreate}
               className="bg-indigo-600 text-white px-6 py-3 rounded-2xl font-black text-sm shadow-xl shadow-indigo-500/20 flex items-center gap-2"
@@ -1172,7 +1181,7 @@ function HomeView({ tournaments, onSelect, onCreate, onDelete, onToggleStatus, s
           </div>
         </div>
 
-        <div className="grid sm:grid-cols-2 gap-6">
+          <div className="grid sm:grid-cols-2 gap-6">
           {tournaments.length === 0 && (
             <div className="col-span-full py-20 text-center space-y-4">
               <div className="bg-slate-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto text-slate-300">
