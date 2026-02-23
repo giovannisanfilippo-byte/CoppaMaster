@@ -5,7 +5,7 @@ export const ClubsPage = () => {
   const [nomeSquadra, setNomeSquadra] = useState("");
   const [clubs, setClubs] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
-  const [editId, setEditId] = useState<string | null>(null); // Per capire se stiamo modificando
+  const [editId, setEditId] = useState<string | null>(null);
 
   const fetchClubs = async () => {
     const { data } = await supabase.from('teams').select('*').order('name', { ascending: true });
@@ -14,7 +14,6 @@ export const ClubsPage = () => {
 
   useEffect(() => { fetchClubs(); }, []);
 
-  // Prepara il form con i dati del club da modificare
   const startEdit = (club: any) => {
     setEditId(club.id);
     setNomeSquadra(club.name);
@@ -30,7 +29,6 @@ export const ClubsPage = () => {
       const file = fileInput?.files ? fileInput.files[0] : null;
       let publicUrl = clubs.find(c => c.id === editId)?.logo_url || "";
 
-      // Se viene caricato un nuovo file, lo carichiamo
       if (file) {
         const fileName = `${Date.now()}-${file.name}`;
         await supabase.storage.from('club-logos').upload(fileName, file);
@@ -39,10 +37,8 @@ export const ClubsPage = () => {
       }
 
       if (editId) {
-        // AGGIORNAMENTO
         await supabase.from('teams').update({ name: nomeSquadra, logo_url: publicUrl }).eq('id', editId);
       } else {
-        // NUOVO INSERIMENTO
         await supabase.from('teams').insert([{ name: nomeSquadra, logo_url: publicUrl }]);
       }
 
@@ -67,28 +63,17 @@ export const ClubsPage = () => {
   return (
     <div style={{ maxWidth: '1000px', margin: '0 auto', padding: '20px', color: 'white' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
-        <h1>{editId ? "Modifica Club" : "Gestione Club"}</h1>
-        <button onClick={() => window.location.href = '/'} style={{ background: '#444', color: 'white', border: 'none', padding: '10px', borderRadius: '5px', cursor: 'pointer' }}>Home</button>
+        <h1 style={{ fontSize: '24px' }}>{editId ? "📝 Modifica Club" : "🛡️ Gestione Club"}</h1>
+        <button onClick={() => window.location.href = '/'} style={{ background: '#444', color: 'white', border: 'none', padding: '10px 15px', borderRadius: '8px', cursor: 'pointer' }}>
+          Torna alla Home
+        </button>
       </div>
 
-      <form onSubmit={handleSave} style={{ background: '#222', padding: '20px', borderRadius: '15px', marginBottom: '30px', border: editId ? '2px solid #007bff' : '1px solid #333' }}>
+      <form onSubmit={handleSave} style={{ background: '#1e1e1e', padding: '20px', borderRadius: '15px', marginBottom: '30px', border: editId ? '2px solid #007bff' : '1px solid #333' }}>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: '15px', alignItems: 'end' }}>
           <div>
-            <label>Nome Squadra</label>
+            <label style={{ fontSize: '14px', color: '#aaa' }}>Nome Squadra</label>
             <input 
               value={nomeSquadra} 
               onChange={e => setNomeSquadra(e.target.value)}
-              style={{ width: '100%', padding: '10px', marginTop: '5px', borderRadius: '5px', border: '1px solid #444', background: '#000', color: '#fff' }}
-              required 
-            />
-          </div>
-          <div>
-            <label>Nuovo Logo (opzionale)</label>
-            <input id="logo-input" type="file" accept="image/*" style={{ marginTop: '5px' }} />
-          </div>
-          <div style={{ display: 'flex', gap: '10px' }}>
-            <button type="submit" disabled={loading} style={{ padding: '10px 20px', background: '#007bff', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer' }}>
-              {loading ? "..." : editId ? "Salva Modifiche" : "Aggiungi"}
-            </button>
-            {editId && (
-              <button type="button" onClick={() => { setEditId(null); setNomeSquad
+              style={{ width: '100%', padding: '12px', marginTop: '5px', borderRadius: '8px', border: '1px solid #444', background: '#000
