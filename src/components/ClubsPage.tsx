@@ -16,6 +16,11 @@ export const ClubsPage = () => {
 
   useEffect(() => { fetchClubs(); }, []);
 
+  // FUNZIONE PER TORNARE ALLA SCHERMATA CON LE CARD (MENU PRINCIPALE)
+  const tornaAlMenuPrincipale = () => {
+    window.location.reload(); 
+  };
+
   const deleteClub = async (id: string) => {
     if (!confirm("Eliminare definitivamente questo club?")) return;
     await supabase.from('teams').delete().eq('id', id);
@@ -28,25 +33,13 @@ export const ClubsPage = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // SCHERMATA GESTIONE GIOCATORI
+  // --- VISTA GIOCATORI ---
   if (showPlayers) {
     return (
       <div style={{ maxWidth: '1000px', margin: '0 auto', padding: '20px', color: 'white' }}>
         <button 
           onClick={() => setShowPlayers(false)} 
-          style={{ 
-            marginBottom: '20px', 
-            padding: '12px 20px', 
-            background: '#444', 
-            color: '#fff', 
-            border: 'none', 
-            borderRadius: '8px', 
-            cursor: 'pointer',
-            fontWeight: 'bold',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '10px'
-          }}
+          style={{ marginBottom: '20px', padding: '10px 15px', background: '#444', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}
         >
           ⬅️ Torna a Gestione Club
         </button>
@@ -55,52 +48,70 @@ export const ClubsPage = () => {
     );
   }
 
-  const handleSave = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    try {
-      const fileInput = (document.getElementById('logo-input') as HTMLInputElement);
-      const file = fileInput?.files ? fileInput.files[0] : null;
-      let publicUrl = clubs.find(c => c.id === editId)?.logo_url || "";
-
-      if (file) {
-        const fileName = `${Date.now()}-${file.name}`;
-        await supabase.storage.from('club-logos').upload(fileName, file);
-        const { data } = supabase.storage.from('club-logos').getPublicUrl(fileName);
-        publicUrl = data.publicUrl;
-      }
-
-      if (editId) {
-        await supabase.from('teams').update({ name: nomeSquadra, logo_url: publicUrl }).eq('id', editId);
-      } else {
-        await supabase.from('teams').insert([{ name: nomeSquadra, logo_url: publicUrl }]);
-      }
-
-      setNomeSquadra("");
-      setEditId(null);
-      if (fileInput) fileInput.value = "";
-      fetchClubs();
-    } catch (err: any) {
-      alert("Errore: " + err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // SCHERMATA GESTIONE CLUB
+  // --- VISTA ANAGRAFICA CLUB ---
   return (
     <div style={{ maxWidth: '1000px', margin: '0 auto', padding: '20px', color: 'white' }}>
+      
+      {/* HEADER CON TASTO TORNA INDIETRO AL MENU */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
-        <h1 style={{ fontSize: '24px' }}>🛡️ Gestione Club</h1>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+          <button 
+            onClick={tornaAlMenuPrincipale}
+            style={{ 
+              background: '#444', 
+              color: 'white', 
+              border: 'none', 
+              padding: '10px 15px', 
+              borderRadius: '8px', 
+              cursor: 'pointer',
+              fontWeight: 'bold',
+              fontSize: '14px'
+            }}
+          >
+            ⬅️ MENU PRINCIPALE
+          </button>
+          <h1 style={{ fontSize: '24px', margin: 0 }}>🛡️ Anagrafica Club</h1>
+        </div>
+
         <button 
           onClick={() => setShowPlayers(true)} 
           style={{ background: '#28a745', color: 'white', border: 'none', padding: '12px 20px', borderRadius: '10px', cursor: 'pointer', fontWeight: 'bold' }}
         >
-          🏃 VAI A GESTIONE GIOCATORI
+          🏃 GESTIONE GIOCATORI
         </button>
       </div>
 
-      <form onSubmit={handleSave} style={{ background: '#1e1e1e', padding: '20px', borderRadius: '15px', marginBottom: '30px', border: editId ? '2px solid #007bff' : '1px solid #333' }}>
+      <form onSubmit={async (e) => {
+        e.preventDefault();
+        setLoading(true);
+        try {
+          const fileInput = (document.getElementById('logo-input') as HTMLInputElement);
+          const file = fileInput?.files ? fileInput.files[0] : null;
+          let publicUrl = clubs.find(c => c.id === editId)?.logo_url || "";
+
+          if (file) {
+            const fileName = `${Date.now()}-${file.name}`;
+            await supabase.storage.from('club-logos').upload(fileName, file);
+            const { data } = supabase.storage.from('club-logos').getPublicUrl(fileName);
+            publicUrl = data.publicUrl;
+          }
+
+          if (editId) {
+            await supabase.from('teams').update({ name: nomeSquadra, logo_url: publicUrl }).eq('id', editId);
+          } else {
+            await supabase.from('teams').insert([{ name: nomeSquadra, logo_url: publicUrl }]);
+          }
+
+          setNomeSquadra("");
+          setEditId(null);
+          if (fileInput) fileInput.value = "";
+          fetchClubs();
+        } catch (err: any) {
+          alert("Errore: " + err.message);
+        } finally {
+          setLoading(false);
+        }
+      }} style={{ background: '#1e1e1e', padding: '20px', borderRadius: '15px', marginBottom: '30px', border: editId ? '2px solid #007bff' : '1px solid #333' }}>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: '15px', alignItems: 'end' }}>
           <div>
             <label style={{ fontSize: '14px', color: '#aaa' }}>Nome Squadra</label>
