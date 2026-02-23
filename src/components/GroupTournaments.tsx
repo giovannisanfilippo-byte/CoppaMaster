@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from "../utils/supabase";
 
-export const GroupTournament = ({ onBack }: { onBack: () => void }) => {
+export const GroupTournaments = ({ onBack }: { onBack: () => void }) => {
   const [step, setStep] = useState(1); // 1: Setup, 2: Configurazione Gironi
   const [tournamentName, setTournamentName] = useState("");
   const [numGroups, setNumGroups] = useState(1);
