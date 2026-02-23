@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from "../utils/supabase"; 
 import { PlayersPage } from './PlayersPage'; 
 
-// ASSICURATI CHE CI SIA SCRITTO "export const ClubsPage"
 export const ClubsPage = () => {
   const [showPlayers, setShowPlayers] = useState(false); 
   const [nomeSquadra, setNomeSquadra] = useState("");
@@ -29,12 +28,25 @@ export const ClubsPage = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  // SCHERMATA GESTIONE GIOCATORI
   if (showPlayers) {
     return (
-      <div>
+      <div style={{ maxWidth: '1000px', margin: '0 auto', padding: '20px', color: 'white' }}>
         <button 
           onClick={() => setShowPlayers(false)} 
-          style={{ marginBottom: '20px', padding: '10px 15px', background: '#444', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer' }}
+          style={{ 
+            marginBottom: '20px', 
+            padding: '12px 20px', 
+            background: '#444', 
+            color: '#fff', 
+            border: 'none', 
+            borderRadius: '8px', 
+            cursor: 'pointer',
+            fontWeight: 'bold',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px'
+          }}
         >
           ⬅️ Torna a Gestione Club
         </button>
@@ -75,6 +87,7 @@ export const ClubsPage = () => {
     }
   };
 
+  // SCHERMATA GESTIONE CLUB
   return (
     <div style={{ maxWidth: '1000px', margin: '0 auto', padding: '20px', color: 'white' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
