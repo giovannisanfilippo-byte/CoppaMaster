@@ -1,134 +1,80 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from "../utils/supabase";
+import { Trophy, ArrowLeft, Users, Calendar } from 'lucide-react';
 
 export const GroupTournaments = ({ onBack }: { onBack: () => void }) => {
-  const [step, setStep] = useState(1); // 1: Setup, 2: Configurazione Gironi
-  const [tournamentName, setTournamentName] = useState("");
-  const [numGroups, setNumGroups] = useState(1);
-  const [allClubs, setAllClubs] = useState<any[]>([]);
-  const [groups, setGroups] = useState<{ [key: string]: any[] }>({ "Girone A": [] });
+  const [teams, setTeams] = useState<any[]>([]);
+  const [selectedTeams, setSelectedTeams] = useState<any[]>([]);
+  const [groups, setGroups] = useState<{name: string, teams: any[]}[]>([]);
 
+  // Carica le squadre dal database all'apertura
   useEffect(() => {
-    const fetchClubs = async () => {
-      const { data } = await supabase.from('teams').select('*').order('name');
-      if (data) setAllClubs(data);
+    const loadTeams = async () => {
+      const { data } = await supabase.from('teams').select('*');
+      if (data) setTeams(data);
     };
-    fetchClubs();
+    loadTeams();
   }, []);
 
-  const handleNextStep = () => {
-    if (!tournamentName) return alert("Inserisci un nome per il torneo");
-    const newGroups: any = {};
-    for (let i = 0; i < numGroups; i++) {
-      const letter = String.fromCharCode(65 + i);
-      newGroups[`Girone ${letter}`] = [];
-    }
-    setGroups(newGroups);
-    setStep(2);
-  };
-
-  const addTeamToGroup = (groupName: string, team: any) => {
-    // Controlla se il team è già in qualche girone
-    const isAlreadyAssigned = Object.values(groups).some(g => g.some(t => t.id === team.id));
-    if (isAlreadyAssigned) return alert("Squadra già assegnata!");
-
-    // Controlla il limite di 6 club
-    if (groups[groupName].length >= 6) return alert("Massimo 6 club per girone!");
-
-    setGroups({
-      ...groups,
-      [groupName]: [...groups[groupName], team]
-    });
-  };
-
-  const removeTeamFromGroup = (groupName: string, teamId: string) => {
-    setGroups({
-      ...groups,
-      [groupName]: groups[groupName].filter(t => t.id !== teamId)
-    });
-  };
-
   return (
-    <div style={{ color: 'white', maxWidth: '1200px', margin: '0 auto' }}>
-      <button onClick={onBack} style={{ marginBottom: '20px', padding: '10px', background: '#444', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer' }}>
-        ⬅️ Torna al Menu
-      </button>
-
-      {step === 1 ? (
-        <div style={{ background: '#1e1e1e', padding: '30px', borderRadius: '15px' }}>
-          <h2>🏆 Nuovo Torneo a Gironi</h2>
-          <div style={{ marginTop: '20px' }}>
-            <label>Nome Torneo</label>
-            <input 
-              value={tournamentName} 
-              onChange={e => setTournamentName(e.target.value)}
-              style={{ width: '100%', padding: '12px', marginTop: '10px', borderRadius: '8px', background: '#000', color: '#fff', border: '1px solid #333' }}
-              placeholder="Es. Champions League - Fase a Gironi"
-            />
-          </div>
-          <div style={{ marginTop: '20px' }}>
-            <label>Numero di Gironi</label>
-            <select 
-              value={numGroups} 
-              onChange={e => setNumGroups(parseInt(e.target.value))}
-              style={{ width: '100%', padding: '12px', marginTop: '10px', borderRadius: '8px', background: '#000', color: '#fff', border: '1px solid #333' }}
-            >
-              {[1, 2, 4, 8].map(n => <option key={n} value={n}>{n}</option>)}
-            </select>
-          </div>
-          <button 
-            onClick={handleNextStep}
-            style={{ marginTop: '30px', width: '100%', padding: '15px', background: '#28a745', border: 'none', borderRadius: '10px', fontWeight: 'bold', cursor: 'pointer' }}
-          >
-            Configura Squadre ➡️
+    <div className="min-h-screen bg-slate-50 p-6">
+      <div className="max-w-6xl mx-auto">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-8">
+          <button onClick={onBack} className="flex items-center gap-2 text-slate-600 hover:text-slate-900 transition-colors">
+            <ArrowLeft className="w-5 h-5" /> Torna alla Home
           </button>
+          <div className="flex items-center gap-3">
+            <Trophy className="w-8 h-8 text-blue-600" />
+            <h1 className="text-2xl font-black text-slate-900 uppercase">Configurazione Gironi</h1>
+          </div>
+          <div className="w-24"></div> {/* Spacer */}
         </div>
-      ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: '300px 1fr', gap: '30px' }}>
-          {/* Colonna Club Disponibili */}
-          <div style={{ background: '#1e1e1e', padding: '20px', borderRadius: '15px', maxHeight: '80vh', overflowY: 'auto' }}>
-            <h3>Club Disponibili</h3>
-            <p style={{ fontSize: '12px', color: '#aaa' }}>Clicca su una squadra per aggiungerla a un girone</p>
-            {allClubs.map(club => {
-              const assigned = Object.values(groups).some(g => g.some(t => t.id === club.id));
-              return (
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          {/* Colonna 1: Lista Squadre */}
+          <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-200">
+            <h2 className="flex items-center gap-2 font-bold mb-4 text-slate-800">
+              <Users className="w-5 h-5 text-blue-500" /> Seleziona Squadre
+            </h2>
+            <div className="space-y-2 max-h-[500px] overflow-y-auto">
+              {teams.map(team => (
                 <div 
-                  key={club.id} 
-                  style={{ 
-                    padding: '10px', background: assigned ? '#111' : '#333', marginBottom: '8px', borderRadius: '8px', 
-                    cursor: assigned ? 'not-allowed' : 'pointer', opacity: assigned ? 0.5 : 1, display: 'flex', alignItems: 'center', gap: '10px'
+                  key={team.id}
+                  onClick={() => {
+                    if (selectedTeams.find(t => t.id === team.id)) {
+                      setSelectedTeams(selectedTeams.filter(t => t.id !== team.id));
+                    } else {
+                      setSelectedTeams([...selectedTeams, team]);
+                    }
                   }}
-                  onClick={() => !assigned && addTeamToGroup(Object.keys(groups)[0], club)}
+                  className={`p-3 rounded-xl border cursor-pointer transition-all ${
+                    selectedTeams.find(t => t.id === team.id) 
+                    ? 'border-blue-500 bg-blue-50' 
+                    : 'border-slate-100 hover:border-slate-300'
+                  }`}
                 >
-                  {club.logo_url && <img src={club.logo_url} width="25" />}
-                  {club.name}
+                  <span className="font-bold text-sm">{team.name}</span>
                 </div>
-              );
-            })}
+              ))}
+            </div>
           </div>
 
-          {/* Area Gironi */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '20px' }}>
-            {Object.keys(groups).map(groupName => (
-              <div key={groupName} style={{ background: '#1e1e1e', padding: '20px', borderRadius: '15px', border: '1px solid #333' }}>
-                <h3 style={{ borderBottom: '1px solid #444', paddingBottom: '10px', color: '#007bff' }}>{groupName}</h3>
-                <p style={{ fontSize: '11px', color: groups[groupName].length < 3 ? '#ff4444' : '#28a745' }}>
-                   {groups[groupName].length} / 6 Squadre (Minimo 3)
-                </p>
-                <div style={{ marginTop: '15px' }}>
-                  {groups[groupName].map(team => (
-                    <div key={team.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px', background: '#252525', marginBottom: '5px', borderRadius: '5px' }}>
-                      <span>{team.name}</span>
-                      <button onClick={() => removeTeamFromGroup(groupName, team.id)} style={{ background: 'none', border: 'none', color: '#dc3545', cursor: 'pointer' }}>✖</button>
-                    </div>
-                  ))}
-                  {groups[groupName].length === 0 && <p style={{ color: '#555', fontSize: '13px' }}>Nessuna squadra assegnata</p>}
-                </div>
-              </div>
-            ))}
+          {/* Colonna 2 e 3: Anteprima Gironi */}
+          <div className="md:col-span-2 space-y-6">
+            <div className="bg-blue-600 p-8 rounded-3xl text-white shadow-xl shadow-blue-500/20">
+              <h3 className="text-xl font-bold mb-2">Pronto per iniziare?</h3>
+              <p className="text-blue-100 mb-6">Hai selezionato {selectedTeams.length} squadre. Ora puoi dividerle in gironi.</p>
+              <button 
+                disabled={selectedTeams.length < 3}
+                className="bg-white text-blue-600 px-6 py-3 rounded-2xl font-black text-sm uppercase hover:bg-blue-50 disabled:opacity-50 transition-all"
+              >
+                Crea Gironi Automatici
+              </button>
+            </div>
           </div>
         </div>
-      )}
+      </div>
     </div>
   );
 };
