@@ -76,4 +76,42 @@ export const ClubsPage = () => {
             <input 
               value={nomeSquadra} 
               onChange={e => setNomeSquadra(e.target.value)}
-              style={{ width: '100%', padding: '12px', marginTop: '5px', borderRadius: '8px', border: '1px solid #444', background: '#000
+              style={{ width: '100%', padding: '12px', marginTop: '5px', borderRadius: '8px', border: '1px solid #444', background: '#000', color: '#fff' }}
+              placeholder="Inserisci nome..."
+              required 
+            />
+          </div>
+          <div>
+            <label style={{ fontSize: '14px', color: '#aaa' }}>Logo (Immagine)</label>
+            <input id="logo-input" type="file" accept="image/*" style={{ marginTop: '5px', display: 'block', color: '#aaa' }} />
+          </div>
+          <div style={{ display: 'flex', gap: '10px' }}>
+            <button type="submit" disabled={loading} style={{ padding: '12px 20px', background: '#007bff', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}>
+              {loading ? "..." : editId ? "Aggiorna" : "Aggiungi"}
+            </button>
+            {editId && (
+              <button type="button" onClick={() => { setEditId(null); setNomeSquadra(""); }} style={{ padding: '12px', background: '#dc3545', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer' }}>
+                X
+              </button>
+            )}
+          </div>
+        </div>
+      </form>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '20px' }}>
+        {clubs.map(c => (
+          <div key={c.id} style={{ background: '#252525', padding: '15px', borderRadius: '12px', textAlign: 'center', position: 'relative', border: '1px solid #333' }}>
+            <div style={{ position: 'absolute', top: '8px', right: '8px', display: 'flex', gap: '8px' }}>
+              <button onClick={() => startEdit(c)} style={{ background: '#333', border: 'none', borderRadius: '4px', cursor: 'pointer', padding: '5px' }}>✏️</button>
+              <button onClick={() => deleteClub(c.id)} style={{ background: '#333', border: 'none', borderRadius: '4px', cursor: 'pointer', padding: '5px' }}>🗑️</button>
+            </div>
+            <div style={{ height: '80px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              {c.logo_url ? <img src={c.logo_url} style={{ maxHeight: '100%', maxWidth: '100%', objectFit: 'contain' }} alt="logo" /> : "⚽"}
+            </div>
+            <h3 style={{ fontSize: '16px', marginTop: '12px', fontWeight: '500' }}>{c.name}</h3>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
