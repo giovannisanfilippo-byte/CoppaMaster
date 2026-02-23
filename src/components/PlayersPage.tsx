@@ -71,13 +71,8 @@ export const PlayersPage = () => {
 
   return (
     <div style={{ color: 'white' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-        <h2 style={{ margin: 0 }}>🏃 {editPlayerId ? "Modifica Tesserato" : "Gestione Tesserati"}</h2>
-        {/* IL TASTO PER TORNARE INDIETRO È GESTITO DALLA PAGINA PADRE (ClubsPage), 
-            MA AGGIUNGIAMO UN PROMEMORIA O UN TASTO DI CHIUSURA SE NECESSARIO */}
-      </div>
+      <h2 style={{ marginBottom: '20px' }}>🏃 {editPlayerId ? "Modifica Tesserato" : "Gestione Tesserati"}</h2>
 
-      {/* 1. FORM DI INSERIMENTO / MODIFICA */}
       <form onSubmit={handleSave} style={{ background: '#1e1e1e', padding: '20px', borderRadius: '15px', marginBottom: '40px', border: editPlayerId ? '2px solid #28a745' : '1px solid #333' }}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '15px', alignItems: 'end' }}>
           <div>
@@ -100,38 +95,15 @@ export const PlayersPage = () => {
               {loading ? "..." : editPlayerId ? "Salva" : "Aggiungi"}
             </button>
             {editPlayerId && (
-              <button type="button" onClick={() => { setEditPlayerId(null); setPlayerName(""); setTesseratoId(""); }} style={{ padding: '12px', background: '#444', color: 'white', border: 'none', borderRadius: '8px' }}>X</button>
+              <button type="button" onClick={() => { setEditPlayerId(null); setPlayerName(""); setTesseratoId(""); }} style={{ padding: '12px', background: '#444', color: 'white', border: 'none', borderRadius: '8px' }}>Annulla</button>
             )}
           </div>
         </div>
       </form>
 
-      {/* 2. SELEZIONE VISUALIZZAZIONE ROSA */}
       <div style={{ background: '#111', padding: '25px', borderRadius: '15px', border: '1px solid #222' }}>
         <h3 style={{ marginBottom: '20px', color: '#007bff' }}>🔍 Visualizza Rosa Squadra</h3>
         <select 
           value={filterTeam} 
           onChange={e => setFilterTeam(e.target.value)} 
-          style={{ width: '100%', maxWidth: '400px', padding: '12px', borderRadius: '8px', background: '#222', color: '#fff', border: '1px solid #444', marginBottom: '20px', fontSize: '16px' }}
-        >
-          <option value="">Scegli un Club...</option>
-          {teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
-        </select>
-
-        {filterTeam ? (
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '15px', padding: '10px', borderBottom: '2px solid #333', marginBottom: '15px' }}>
-              {selectedTeamData?.logo_url && <img src={selectedTeamData.logo_url} style={{ width: '40px', height: '40px', objectFit: 'contain' }} alt="" />}
-              <h2 style={{ margin: 0 }}>Rosa {selectedTeamData?.name}</h2>
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '15px' }}>
-              {filteredPlayers.map(p => (
-                <div key={p.id} style={{ background: '#222', padding: '15px', borderRadius: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: '1px solid #333' }}>
-                  <div>
-                    <div style={{ fontWeight: 'bold' }}>{p.name}</div>
-                    <div style={{ color: '#888', fontSize: '12px' }}>ID: {p.tesserato_id}</div>
-                  </div>
-                  <div style={{ display: 'flex', gap: '10px' }}>
-                    <button onClick={() => startEdit(p)} style={{ background: '#333', border: 'none', padding: '8px', borderRadius: '5px', cursor: 'pointer' }}>✏️</button>
-                    <button onClick={() => deletePlayer(p.id)} style={{ background: '#3
+          style={{ width: '100%', maxWidth: '400px', padding: '12px', borderRadius: '8
