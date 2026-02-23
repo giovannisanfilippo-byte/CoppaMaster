@@ -106,4 +106,40 @@ export const PlayersPage = () => {
         <select 
           value={filterTeam} 
           onChange={e => setFilterTeam(e.target.value)} 
-          style={{ width: '100%', maxWidth: '400px', padding: '12px', borderRadius: '8
+          style={{ width: '100%', maxWidth: '400px', padding: '12px', borderRadius: '8px', background: '#222', color: '#fff', border: '1px solid #444', marginBottom: '20px', fontSize: '16px' }}
+        >
+          <option value="">Scegli un Club...</option>
+          {teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+        </select>
+
+        {filterTeam ? (
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '15px', padding: '10px', borderBottom: '2px solid #333', marginBottom: '15px' }}>
+              {selectedTeamData?.logo_url && <img src={selectedTeamData.logo_url} style={{ width: '40px', height: '40px', objectFit: 'contain' }} alt="" />}
+              <h2 style={{ margin: 0 }}>Rosa {selectedTeamData?.name}</h2>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '15px' }}>
+              {filteredPlayers.map(p => (
+                <div key={p.id} style={{ background: '#222', padding: '15px', borderRadius: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: '1px solid #333' }}>
+                  <div>
+                    <div style={{ fontWeight: 'bold' }}>{p.name}</div>
+                    <div style={{ color: '#888', fontSize: '12px' }}>ID: {p.tesserato_id}</div>
+                  </div>
+                  <div style={{ display: 'flex', gap: '10px' }}>
+                    <button onClick={() => startEdit(p)} style={{ background: '#333', border: 'none', padding: '8px', borderRadius: '5px', cursor: 'pointer' }}>✏️</button>
+                    <button onClick={() => deletePlayer(p.id)} style={{ background: '#333', border: 'none', padding: '8px', borderRadius: '5px', cursor: 'pointer' }}>🗑️</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <div style={{ textAlign: 'center', padding: '30px', color: '#555' }}>
+            Seleziona una squadra per visualizzare i tesserati
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
