@@ -140,6 +140,14 @@ function PrivateApp() {
         fetchClubs(user.id),
         fetchTournaments(user.id)
       ]);
+      if (clubsData) {
+      setTeams(clubsData.map(t => ({
+        id: t.id,
+        name: t.name,
+        logoUrl: t.logo_url,
+        colors: t.colors
+      })));
+    }
       
       // Transform Supabase data to local state format
       const loadedTeams: Team[] = clubsData.map((c: any) => ({
