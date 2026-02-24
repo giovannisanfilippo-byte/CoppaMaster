@@ -775,6 +775,7 @@ if (view === 'teams') {
       onCreateAndAddTeam={(teamData: any) => createAndAddTeam(teamData)}
       onRemoveTeam={(id: string) => removeTeamFromTournament(id)}
       onGenerate={() => generateCalendar()}
+      onRefreshTeams={() => loadUserData()}
     />
   );
 }
