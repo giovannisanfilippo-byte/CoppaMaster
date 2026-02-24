@@ -766,15 +766,16 @@ function PrivateApp() {
     );
   } 
 
-  if (view === 'teams') {
+ if (view === 'teams' && currentTournament) {
   return (
     <TeamRegistrationView 
       tournament={currentTournament}
-      // ASSICURATI CHE QUESTE DUE RIGHE SIANO COSÌ:
-      teams={teams} 
-      currentTournamentTeams={currentTournamentTeams}
-      onAddExistingTeam={handleAddExistingTeam}
-      // ... restanti props
+      teams={teams || []} // Se teams è nullo, passiamo una lista vuota per non far crashare
+      currentTournamentTeams={currentTournamentTeams || []}
+      onAddExistingTeam={(id: string) => handleAddExistingTeam && handleAddExistingTeam(id)}
+      onCreateAndAddTeam={(data: any) => handleCreateAndAddTeam && handleCreateAndAddTeam(data)}
+      onRemoveTeam={(id: string) => handleRemoveTeam && handleRemoveTeam(id)}
+      onGenerate={() => handleGenerateTournament && handleGenerateTournament()}
     />
   );
 }
