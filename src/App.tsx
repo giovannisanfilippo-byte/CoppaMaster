@@ -1320,18 +1320,27 @@ function TeamRegistrationView({ tournament, teams, currentTournamentTeams, onAdd
         </div>
 
         <div className="bg-white p-8 rounded-[2.5rem] border border-slate-200 shadow-sm space-y-8">
+          {/* SELEZIONE DA ANAGRAFICA */}
           <div className="space-y-3">
             <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Seleziona Club dall'Anagrafica</label>
             <div className="relative">
               <select 
                 className="w-full p-5 bg-slate-50 rounded-2xl border border-slate-200 outline-none focus:ring-2 focus:ring-indigo-500 font-bold appearance-none cursor-pointer"
-                onChange={(e) => { if (e.target.value) onAddExistingTeam(e.target.value); e.target.value = ''; }}
+                onChange={(e) => {
+                  if (e.target.value) {
+                    onAddExistingTeam(e.target.value);
+                    e.target.value = '';
+                  }
+                }}
                 disabled={currentTournamentTeams.length >= tournament.maxTeams}
               >
                 <option value="">Scegli un club...</option>
-                {teams.filter((t: any) => !currentTournamentTeams.some((ct: any) => ct.id === t.id)).map((t: any) => (
-                  <option key={t.id} value={t.id}>{t.name}</option>
-                ))}
+                {teams
+                  .filter((t: any) => !currentTournamentTeams.some((ct: any) => (ct.teamId === t.id || ct.id === t.id)))
+                  .map((t: any) => (
+                    <option key={t.id} value={t.id}>{t.name}</option>
+                  ))
+                }
               </select>
               <div className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none">
                 <ChevronRight className="w-5 h-5 text-slate-300 rotate-90" />
@@ -1339,7 +1348,7 @@ function TeamRegistrationView({ tournament, teams, currentTournamentTeams, onAdd
             </div>
             {teams.length === 0 && (
               <p className="text-[10px] font-bold text-amber-600 bg-amber-50 p-3 rounded-xl border border-amber-100">
-                L'anagrafica è vuota. Crea prima i club nella sezione "Anagrafica Club".
+                L'anagrafica è vuota. Crea i club nella sezione "Anagrafica Club".
               </p>
             )}
           </div>
@@ -1349,6 +1358,7 @@ function TeamRegistrationView({ tournament, teams, currentTournamentTeams, onAdd
             <div className="relative flex justify-center text-[10px] font-black uppercase tracking-widest text-slate-300 bg-white px-4">Oppure crea club rapido</div>
           </div>
 
+          {/* CREAZIONE NUOVA SQUADRA */}
           <div className="flex gap-3">
             <input 
               placeholder="Nome Club"
@@ -1358,7 +1368,7 @@ function TeamRegistrationView({ tournament, teams, currentTournamentTeams, onAdd
               disabled={currentTournamentTeams.length >= tournament.maxTeams}
             />
             <button 
-              onClick={() => { onCreateAndAddTeam({ name }); setName(''); }}
+              onClick={() => { if(name) { onCreateAndAddTeam({ name }); setName(''); } }}
               disabled={!name || currentTournamentTeams.length >= tournament.maxTeams}
               className="bg-slate-900 text-white px-8 rounded-2xl font-black disabled:opacity-50 hover:bg-slate-800 transition-colors"
             >
@@ -1366,18 +1376,17 @@ function TeamRegistrationView({ tournament, teams, currentTournamentTeams, onAdd
             </button>
           </div>
 
+          {/* LISTA SQUADRE ISCRITTE */}
           <div className="space-y-4">
-            <div className="flex items-center justify-between px-1">
-              <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400">Squadre Iscritte ({currentTournamentTeams.length}/{tournament.maxTeams})</h3>
-            </div>
+            <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400">Squadre Iscritte ({currentTournamentTeams.length}/{tournament.maxTeams})</h3>
             <div className="divide-y divide-slate-100 bg-slate-50 rounded-2xl border border-slate-100 overflow-hidden">
               {currentTournamentTeams.map((t: any) => (
                 <div key={t.id} className="p-4 flex items-center justify-between hover:bg-white transition-colors">
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-lg bg-white border border-slate-200 flex items-center justify-center font-black text-xs text-slate-400">
-                      {t.name.charAt(0)}
+                      {(t.name || t.teamName || '?').charAt(0)}
                     </div>
-                    <span className="font-bold text-slate-700">{t.name}</span>
+                    <span className="font-bold text-slate-700">{t.name || t.teamName}</span>
                   </div>
                   <button onClick={() => onRemoveTeam(t.id)} className="p-2 text-slate-300 hover:text-red-500 transition-colors">
                     <Trash2 className="w-4 h-4" />
