@@ -767,18 +767,17 @@ function PrivateApp() {
   } 
 
   if (view === 'teams') {
-    return (
-      <TeamRegistrationView 
-        tournament={tournament!} 
-        teams={teams}
-        currentTournamentTeams={currentTournamentTeams}
-        onAddExistingTeam={addTeamToTournament}
-        onCreateAndAddTeam={createAndAddTeam}
-        onRemoveTeam={removeTeamFromTournament} 
-        onGenerate={generateCalendar} 
-      />
-    );
-  }
+  return (
+    <TeamRegistrationView 
+      tournament={currentTournament}
+      // ASSICURATI CHE QUESTE DUE RIGHE SIANO COSÌ:
+      teams={teams} 
+      currentTournamentTeams={currentTournamentTeams}
+      onAddExistingTeam={handleAddExistingTeam}
+      // ... restanti props
+    />
+  );
+}
   
   if (view === 'roster') {
     return (
