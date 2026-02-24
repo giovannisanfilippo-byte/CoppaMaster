@@ -429,39 +429,35 @@ function PrivateApp() {
   };
 
   const deleteTournament = async (id: string) => {
-    // ALERT DI TEST: Se non lo vedi, il tasto non è collegato bene
-    alert("Cancellazione avviata per il torneo!");
+    // 1. Alert di conferma nativo (più affidabile per il debug)
+    if (!window.confirm("Confermi la cancellazione definitiva del torneo?")) return;
 
-    const tournamentToDelete = tournaments.find(t => t.id === id);
-    
-    setConfirmModal({
-      isOpen: true,
-      title: 'Elimina Torneo',
-      message: `Sei sicuro di voler eliminare il torneo "${tournamentToDelete?.name}"?`,
-      onConfirm: async () => {
-        try {
-          const { error } = await supabase
-            .from('tournaments')
-            .delete()
-            .eq('id', id);
+    try {
+      console.log("DEBUG - Tento di cancellare il torneo con ID:", id);
+      
+      const { error, count } = await supabase
+        .from('tournaments')
+        .delete()
+        .eq('id', id);
 
-          if (error) throw error;
-
-          // Aggiorna la lista togliendo il torneo eliminato
-          setTournaments(prev => prev.filter(t => t.id !== id));
-          
-          if (activeTournamentId === id) {
-            setActiveTournamentId(null);
-            setView('home');
-          }
-          
-          console.log("DEBUG - Torneo eliminato");
-        } catch (error) {
-          console.error('Error:', error);
-          alert('Errore database: ' + error.message);
-        }
+      if (error) {
+        console.error("ERRORE SUPABASE:", error.message);
+        alert("Errore dal database: " + error.message);
+        return;
       }
-    });
+
+      // 2. Controllo se il database ha effettivamente rimosso qualcosa
+      console.log("DEBUG - Cancellazione completata. Risultato:", { error, count });
+
+      // 3. Aggiorna lo stato locale immediatamente
+      setTournaments(prev => prev.filter(t => t.id !== id));
+      
+      alert("Torneo eliminato correttamente dall'elenco!");
+
+    } catch (err: any) {
+      console.error("ERRORE IMPREVISTO:", err);
+      alert("Si è verificato un errore: " + err.message);
+    }
   };
   
   // --- Handlers: Roster ---
