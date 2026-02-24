@@ -137,36 +137,27 @@ function PrivateApp() {
     if (!user) return;
     try {
       const [clubsDataResponse, tournamentsData] = await Promise.all([
-        supabase.from('teams').select('*').eq('user_id', user.id), // Proviamo 'teams' invece di 'clubs'
+        supabase.from('teams').select('*').eq('user_id', user.id),
         fetchTournaments(user.id)
       ]);
+
       const clubsData = clubsDataResponse.data;
-      
-     if (clubsData) {
-      console.log("DEBUG - Club ricevuti dal DB:", clubsData);
-      const formattedTeams = clubsData.map((t: any) => ({
-        id: t.id,
-        // Usiamo tutti i nomi possibili per essere sicuri al 100%
-        name: t.name || t.nome || t.club_name || t.team_name || "Squadra senza nome",
-        logoUrl: t.logo_url || t.logo || "",
-        colors: t.colors || []
-      }));
-      setTeams(formattedTeams);
-    } else {
-      console.log("DEBUG - Nessun dato ricevuto per i club");
-      setTeams([]);
-    }
 
-      const loadedPlayers: Player[] = clubsData.flatMap((c: any) => 
-        c.players.map((p: any) => ({
-          id: p.id,
-          teamId: p.team_id,
-          name: p.name,
-          number: p.number,
-          playerExternalId: p.player_external_id
-        }))
-      );
+      // 1. GESTIONE CLUB
+      if (clubsData) {
+        console.log("DEBUG - Club ricevuti dal DB:", clubsData);
+        const formattedTeams = clubsData.map((t: any) => ({
+          id: t.id,
+          name: t.name || t.nome || t.club_name || t.team_name || "Squadra senza nome",
+          logoUrl: t.logo_url || t.logo || "",
+          colors: t.colors || []
+        }));
+        setTeams(formattedTeams);
+      } else {
+        setTeams([]);
+      }
 
+      // 2. GESTIONE TORNEI (Ora si caricheranno sicuramente!)
       if (tournamentsData) {
         setTournaments(tournamentsData.map((t: any) => ({
           id: t.id,
@@ -176,11 +167,12 @@ function PrivateApp() {
           status: t.status
         })));
       }
+      
     } catch (error) {
       console.error('Failed to load user data:', error);
     }
   };
-
+  
   const loadTournamentDetails = async (tournamentId: string) => {
     try {
       const data = await fetchTournamentData(tournamentId);
