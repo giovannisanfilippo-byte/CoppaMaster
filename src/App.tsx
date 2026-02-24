@@ -772,10 +772,22 @@ function PrivateApp() {
         tournament={currentTournament}
         teams={teams || []}
         currentTournamentTeams={currentTournamentTeams || []}
-        onAddExistingTeam={(id: any) => typeof handleAddExistingTeam === 'function' && handleAddExistingTeam(id)}
-        onCreateAndAddTeam={(name: any) => typeof handleCreateAndAddTeam === 'function' && handleCreateAndAddTeam(name)}
-        onRemoveTeam={(id: any) => typeof handleRemoveTeam === 'function' && handleRemoveTeam(id)}
-        onGenerate={() => typeof handleGenerateTournament === 'function' && handleGenerateTournament()}
+        onAddExistingTeam={(id: any) => {
+          if (typeof handleAddExistingTeam === 'function') handleAddExistingTeam(id);
+          else if (typeof handleAddTeamToTournament === 'function') handleAddTeamToTournament(id);
+        }}
+        onCreateAndAddTeam={(name: any) => {
+          if (typeof handleCreateAndAddTeam === 'function') handleCreateAndAddTeam(name);
+          else if (typeof createAndAddTeam === 'function') createAndAddTeam(name);
+        }}
+        onRemoveTeam={(id: any) => {
+          if (typeof handleRemoveTeam === 'function') handleRemoveTeam(id);
+          else if (typeof removeTeamFromTournament === 'function') removeTeamFromTournament(id);
+        }}
+        onGenerate={() => {
+          if (typeof handleGenerateTournament === 'function') handleGenerateTournament();
+          else if (typeof generateCalendar === 'function') generateCalendar();
+        }}
       />
     );
   }
