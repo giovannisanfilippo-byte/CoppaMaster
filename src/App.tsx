@@ -437,16 +437,27 @@ function PrivateApp() {
       message: `Sei sicuro di voler eliminare il torneo "${tournamentToDelete?.name}"? Questa azione è irreversibile e tutti i dati (partite, eventi, classifiche) verranno persi.`,
       onConfirm: async () => {
         try {
-          await deleteTournamentDB(id);
-          setTournaments(tournaments.filter(t => t.id !== id));
-          setMatches(matches.filter(m => m.tournamentId !== id));
+          // Cancellazione diretta sul database
+          const { error } = await supabase
+            .from('tournaments')
+            .delete()
+            .eq('id', id);
+
+          if (error) throw error;
+
+          // Aggiorna lo stato locale per far sparire il torneo dalla lista
+          setTournaments(prev => prev.filter(t => t.id !== id));
+          setMatches(prev => prev.filter(m => m.tournamentId !== id));
+          
           if (activeTournamentId === id) {
             setActiveTournamentId(null);
             setView('home');
           }
+          
+          console.log("DEBUG - Torneo eliminato con successo");
         } catch (error) {
           console.error('Error deleting tournament:', error);
-          alert('Errore nell\'eliminazione del torneo.');
+          alert('Errore nell\'eliminazione del torneo dal database.');
         }
       }
     });
