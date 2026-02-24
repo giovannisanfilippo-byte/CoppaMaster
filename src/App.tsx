@@ -143,7 +143,7 @@ function PrivateApp() {
 
       const clubsData = clubsDataResponse.data;
 
-      // 1. GESTIONE CLUB
+      // Gestione Club
       if (clubsData) {
         console.log("DEBUG - Club ricevuti dal DB:", clubsData);
         const formattedTeams = clubsData.map((t: any) => ({
@@ -157,7 +157,7 @@ function PrivateApp() {
         setTeams([]);
       }
 
-      // 2. GESTIONE TORNEI (Ora si caricheranno sicuramente!)
+      // Gestione Tornei
       if (tournamentsData) {
         setTournaments(tournamentsData.map((t: any) => ({
           id: t.id,
@@ -167,7 +167,6 @@ function PrivateApp() {
           status: t.status
         })));
       }
-      
     } catch (error) {
       console.error('Failed to load user data:', error);
     }
