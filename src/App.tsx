@@ -167,15 +167,15 @@ function PrivateApp() {
         }))
       );
 
-      setTeams(loadedTeams);
-      setPlayers(loadedPlayers);
-      setTournaments(tournamentsData.map((t: any) => ({
-        id: t.id,
-        name: t.name,
-        type: t.type,
-        maxTeams: t.max_teams,
-        status: t.status
-      })));
+      if (tournamentsData) {
+        setTournaments(tournamentsData.map((t: any) => ({
+          id: t.id,
+          name: t.name,
+          type: t.type,
+          maxTeams: t.max_teams,
+          status: t.status
+        })));
+      }
     } catch (error) {
       console.error('Failed to load user data:', error);
     }
