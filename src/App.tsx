@@ -141,13 +141,15 @@ function PrivateApp() {
         fetchTournaments(user.id)
       ]);
       if (clubsData) {
+      console.log("DEBUG - Club ricevuti dal DB:", clubsData); 
       setTeams(clubsData.map(t => ({
         id: t.id,
-        // Prova tutte le varianti di nome possibili
-        name: t.name || t.nome || t.club_name || "Squadra senza nome", 
-        logoUrl: t.logo_url || t.logo,
-        colors: t.colors
+        name: t.name || t.nome || t.club_name || t.team_name || "Squadra senza nome",
+        logoUrl: t.logo_url || t.logo || "",
+        colors: t.colors || []
       })));
+    } else {
+      console.log("DEBUG - Nessun dato ricevuto per i club");
     }
       
       // Transform Supabase data to local state format
