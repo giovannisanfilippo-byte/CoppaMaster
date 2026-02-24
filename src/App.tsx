@@ -1303,8 +1303,11 @@ function SetupView({ onCreate, onBack }: { onCreate: (name: string, type: Tourna
   );
 }
 
-function TeamRegistrationView({ tournament, teams, currentTournamentTeams, onAddExistingTeam, onCreateAndAddTeam, onRemoveTeam, onGenerate }: any) {
+function TeamRegistrationView({ tournament, teams, currentTournamentTeams, onAddExistingTeam, onCreateAndAddTeam, onRemoveTeam, onGenerate, onRefreshTeams }: any) {
   const [name, setName] = useState('');
+  useEffect(() => {
+  if (onRefreshTeams) onRefreshTeams();
+}, []);
   const canGenerate = currentTournamentTeams.length >= 2 && currentTournamentTeams.length === tournament.maxTeams;
   console.log("DEBUG TeamRegistrationView - teams ricevuti:", teams);
 console.log("DEBUG TeamRegistrationView - lunghezza:", teams?.length);
