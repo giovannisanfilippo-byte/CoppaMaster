@@ -766,30 +766,18 @@ function PrivateApp() {
   } 
 
 if (view === 'teams') {
-    return (
-      <TeamRegistrationView 
-        tournament={typeof tournament !== 'undefined' ? tournament : (typeof currentTournament !== 'undefined' ? currentTournament : {})} 
-        teams={teams || []}
-        currentTournamentTeams={typeof currentTournamentTeams !== 'undefined' ? currentTournamentTeams : []}
-        onAddExistingTeam={(id: any) => {
-          if (typeof handleAddExistingTeam === 'function') handleAddExistingTeam(id);
-          else if (typeof handleAddTeamToTournament === 'function') handleAddTeamToTournament(id);
-        }}
-        onCreateAndAddTeam={(name: any) => {
-          if (typeof handleCreateAndAddTeam === 'function') handleCreateAndAddTeam(name);
-          else if (typeof createAndAddTeam === 'function') createAndAddTeam(name);
-        }}
-        onRemoveTeam={(id: any) => {
-          if (typeof handleRemoveTeam === 'function') handleRemoveTeam(id);
-          else if (typeof removeTeamFromTournament === 'function') removeTeamFromTournament(id);
-        }}
-        onGenerate={() => {
-          if (typeof handleGenerateTournament === 'function') handleGenerateTournament();
-          else if (typeof generateCalendar === 'function') generateCalendar();
-        }}
-      />
-    );
-  }
+  return (
+    <TeamRegistrationView 
+      tournament={tournament}
+      teams={teams}
+      currentTournamentTeams={currentTournamentTeams}
+      onAddExistingTeam={(id: string) => addTeamToTournament(id)}
+      onCreateAndAddTeam={(teamData: any) => createAndAddTeam(teamData)}
+      onRemoveTeam={(id: string) => removeTeamFromTournament(id)}
+      onGenerate={() => generateCalendar()}
+    />
+  );
+}
   
   if (view === 'roster') {
     return (
