@@ -143,8 +143,9 @@ function PrivateApp() {
       if (clubsData) {
       setTeams(clubsData.map(t => ({
         id: t.id,
-        name: t.name,
-        logoUrl: t.logo_url,
+        // Prova tutte le varianti di nome possibili
+        name: t.name || t.nome || t.club_name || "Squadra senza nome", 
+        logoUrl: t.logo_url || t.logo,
         colors: t.colors
       })));
     }
