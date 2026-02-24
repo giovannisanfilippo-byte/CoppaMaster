@@ -140,25 +140,20 @@ function PrivateApp() {
         fetchClubs(user.id),
         fetchTournaments(user.id)
       ]);
-      if (clubsData) {
-      console.log("DEBUG - Club ricevuti dal DB:", clubsData); 
-      setTeams(clubsData.map(t => ({
+     if (clubsData) {
+      console.log("DEBUG - Club ricevuti dal DB:", clubsData);
+      const formattedTeams = clubsData.map((t: any) => ({
         id: t.id,
+        // Usiamo tutti i nomi possibili per essere sicuri al 100%
         name: t.name || t.nome || t.club_name || t.team_name || "Squadra senza nome",
         logoUrl: t.logo_url || t.logo || "",
         colors: t.colors || []
-      })));
+      }));
+      setTeams(formattedTeams);
     } else {
       console.log("DEBUG - Nessun dato ricevuto per i club");
+      setTeams([]);
     }
-      
-      // Transform Supabase data to local state format
-      const loadedTeams: Team[] = clubsData.map((c: any) => ({
-        id: c.id,
-        name: c.name,
-        logoUrl: c.logo_url,
-        colors: c.colors
-      }));
 
       const loadedPlayers: Player[] = clubsData.flatMap((c: any) => 
         c.players.map((p: any) => ({
