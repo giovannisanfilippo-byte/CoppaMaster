@@ -767,18 +767,18 @@ function PrivateApp() {
   } 
 
  if (view === 'teams' && currentTournament) {
-  return (
-    <TeamRegistrationView 
-      tournament={currentTournament}
-      teams={teams || []} // Se teams è nullo, passiamo una lista vuota per non far crashare
-      currentTournamentTeams={currentTournamentTeams || []}
-      onAddExistingTeam={(id: string) => handleAddExistingTeam && handleAddExistingTeam(id)}
-      onCreateAndAddTeam={(data: any) => handleCreateAndAddTeam && handleCreateAndAddTeam(data)}
-      onRemoveTeam={(id: string) => handleRemoveTeam && handleRemoveTeam(id)}
-      onGenerate={() => handleGenerateTournament && handleGenerateTournament()}
-    />
-  );
-}
+    return (
+      <TeamRegistrationView 
+        tournament={currentTournament}
+        teams={teams || []}
+        currentTournamentTeams={currentTournamentTeams || []}
+        onAddExistingTeam={(id: any) => typeof handleAddExistingTeam === 'function' && handleAddExistingTeam(id)}
+        onCreateAndAddTeam={(name: any) => typeof handleCreateAndAddTeam === 'function' && handleCreateAndAddTeam(name)}
+        onRemoveTeam={(id: any) => typeof handleRemoveTeam === 'function' && handleRemoveTeam(id)}
+        onGenerate={() => typeof handleGenerateTournament === 'function' && handleGenerateTournament()}
+      />
+    );
+  }
   
   if (view === 'roster') {
     return (
