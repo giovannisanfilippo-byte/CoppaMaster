@@ -431,13 +431,14 @@ function PrivateApp() {
 
   const deleteTournament = async (id: string) => {
     const tournamentToDelete = tournaments.find(t => t.id === id);
+    
     setConfirmModal({
       isOpen: true,
       title: 'Elimina Torneo',
-      message: `Sei sicuro di voler eliminare il torneo "${tournamentToDelete?.name}"? Questa azione è irreversibile e tutti i dati (partite, eventi, classifiche) verranno persi.`,
+      message: `Sei sicuro di voler eliminare il torneo "${tournamentToDelete?.name}"? Questa azione è irreversibile.`,
       onConfirm: async () => {
         try {
-          // Cancellazione diretta sul database
+          // Cancellazione diretta su Supabase
           const { error } = await supabase
             .from('tournaments')
             .delete()
@@ -445,7 +446,7 @@ function PrivateApp() {
 
           if (error) throw error;
 
-          // Aggiorna lo stato locale per far sparire il torneo dalla lista
+          // Aggiornamento interfaccia
           setTournaments(prev => prev.filter(t => t.id !== id));
           setMatches(prev => prev.filter(m => m.tournamentId !== id));
           
