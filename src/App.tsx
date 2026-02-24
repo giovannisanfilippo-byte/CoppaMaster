@@ -1303,14 +1303,29 @@ function SetupView({ onCreate, onBack }: { onCreate: (name: string, type: Tourna
   );
 }
 
-function TeamRegistrationView({ tournament, teams, currentTournamentTeams, onAddExistingTeam, onCreateAndAddTeam, onRemoveTeam, onGenerate, onRefreshTeams }: any) {
+function TeamRegistrationView({ tournament, teams: initialTeams, currentTournamentTeams, onAddExistingTeam, onCreateAndAddTeam, onRemoveTeam, onGenerate }: any) {
   const [name, setName] = useState('');
+  const [localTeams, setLocalTeams] = useState(initialTeams || []);
+
   useEffect(() => {
-  if (onRefreshTeams) onRefreshTeams();
-}, []);
+    const loadTeams = async () => {
+      const { data } = await supabase.from('teams').select('*');
+      if (data && data.length > 0) {
+        console.log("DEBUG locale - club caricati:", data);
+        setLocalTeams(data.map((t: any) => ({
+          id: t.id,
+          name: t.name || t.nome || t.club_name || "Squadra senza nome",
+          logoUrl: t.logo_url || "",
+          colors: t.colors || []
+        })));
+      } else {
+        setLocalTeams(initialTeams || []);
+      }
+    };
+    loadTeams();
+  }, []);
+
   const canGenerate = currentTournamentTeams.length >= 2 && currentTournamentTeams.length === tournament.maxTeams;
-  console.log("DEBUG TeamRegistrationView - teams ricevuti:", teams);
-console.log("DEBUG TeamRegistrationView - lunghezza:", teams?.length);
 
   return (
     <div className="min-h-screen bg-slate-50 p-6">
@@ -1341,21 +1356,21 @@ console.log("DEBUG TeamRegistrationView - lunghezza:", teams?.length);
                 disabled={currentTournamentTeams.length >= tournament.maxTeams}
               >
                 <option value="">Scegli un club...</option>
-{teams.length === 0 ? (
-  <option disabled>Nessun club trovato (Variable Empty)</option>
-) : (
-  teams.map((t: any) => (
-    <option key={t.id} value={t.id}>
-      {t.name || t.club_name || "Nome mancante"} 
-    </option>
-  ))
-)}
+                {localTeams.length === 0 ? (
+                  <option disabled>Nessun club trovato</option>
+                ) : (
+                  localTeams.map((t: any) => (
+                    <option key={t.id} value={t.id}>
+                      {t.name || t.club_name || "Nome mancante"} 
+                    </option>
+                  ))
+                )}
               </select>
               <div className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none">
                 <ChevronRight className="w-5 h-5 text-slate-300 rotate-90" />
               </div>
             </div>
-            {teams.length === 0 && (
+            {localTeams.length === 0 && (
               <p className="text-[10px] font-bold text-amber-600 bg-amber-50 p-3 rounded-xl border border-amber-100">
                 L'anagrafica è vuota. Crea i club nella sezione "Anagrafica Club".
               </p>
