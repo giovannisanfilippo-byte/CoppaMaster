@@ -429,15 +429,17 @@ function PrivateApp() {
   };
 
   const deleteTournament = async (id: string) => {
+    // ALERT DI TEST: Se non lo vedi, il tasto non è collegato bene
+    alert("Cancellazione avviata per il torneo!");
+
     const tournamentToDelete = tournaments.find(t => t.id === id);
     
     setConfirmModal({
       isOpen: true,
       title: 'Elimina Torneo',
-      message: `Sei sicuro di voler eliminare il torneo "${tournamentToDelete?.name}"? Questa azione è irreversibile.`,
+      message: `Sei sicuro di voler eliminare il torneo "${tournamentToDelete?.name}"?`,
       onConfirm: async () => {
         try {
-          // Cancellazione diretta su Supabase
           const { error } = await supabase
             .from('tournaments')
             .delete()
@@ -445,24 +447,23 @@ function PrivateApp() {
 
           if (error) throw error;
 
-          // Aggiornamento interfaccia
+          // Aggiorna la lista togliendo il torneo eliminato
           setTournaments(prev => prev.filter(t => t.id !== id));
-          setMatches(prev => prev.filter(m => m.tournamentId !== id));
           
           if (activeTournamentId === id) {
             setActiveTournamentId(null);
             setView('home');
           }
           
-          console.log("DEBUG - Torneo eliminato con successo");
+          console.log("DEBUG - Torneo eliminato");
         } catch (error) {
-          console.error('Error deleting tournament:', error);
-          alert('Errore nell\'eliminazione del torneo dal database.');
+          console.error('Error:', error);
+          alert('Errore database: ' + error.message);
         }
       }
     });
   };
-
+  
   // --- Handlers: Roster ---
   const addPlayer = (teamId: string, name: string, number: number, playerExternalId: string) => {
     if (!name || !playerExternalId) return;
