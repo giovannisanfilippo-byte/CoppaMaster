@@ -136,10 +136,12 @@ function PrivateApp() {
   const loadUserData = async () => {
     if (!user) return;
     try {
-      const [clubsData, tournamentsData] = await Promise.all([
-        fetchClubs(user.id),
+      const [clubsDataResponse, tournamentsData] = await Promise.all([
+        supabase.from('teams').select('*').eq('user_id', user.id), // Proviamo 'teams' invece di 'clubs'
         fetchTournaments(user.id)
       ]);
+      const clubsData = clubsDataResponse.data;
+      
      if (clubsData) {
       console.log("DEBUG - Club ricevuti dal DB:", clubsData);
       const formattedTeams = clubsData.map((t: any) => ({
