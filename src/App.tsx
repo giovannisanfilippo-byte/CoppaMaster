@@ -766,12 +766,12 @@ function PrivateApp() {
     );
   } 
 
- if (view === 'teams' && currentTournament) {
+if (view === 'teams') {
     return (
       <TeamRegistrationView 
-        tournament={currentTournament}
+        tournament={typeof tournament !== 'undefined' ? tournament : (typeof currentTournament !== 'undefined' ? currentTournament : {})} 
         teams={teams || []}
-        currentTournamentTeams={currentTournamentTeams || []}
+        currentTournamentTeams={typeof currentTournamentTeams !== 'undefined' ? currentTournamentTeams : []}
         onAddExistingTeam={(id: any) => {
           if (typeof handleAddExistingTeam === 'function') handleAddExistingTeam(id);
           else if (typeof handleAddTeamToTournament === 'function') handleAddTeamToTournament(id);
