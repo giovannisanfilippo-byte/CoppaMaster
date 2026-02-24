@@ -1335,8 +1335,7 @@ function TeamRegistrationView({ tournament, teams, currentTournamentTeams, onAdd
                 disabled={currentTournamentTeams.length >= tournament.maxTeams}
               >
                 <option value="">Scegli un club...</option>
-                {teams
-                  .filter((t: any) => !currentTournamentTeams.some((ct: any) => (ct.teamId === t.id || ct.id === t.id)))
+                {teams.map((t: any) => (
                   .map((t: any) => (
                     <option key={t.id} value={t.id}>{t.name}</option>
                   ))
