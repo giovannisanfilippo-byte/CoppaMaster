@@ -1335,9 +1335,15 @@ function TeamRegistrationView({ tournament, teams, currentTournamentTeams, onAdd
                 disabled={currentTournamentTeams.length >= tournament.maxTeams}
               >
                 <option value="">Scegli un club...</option>
-{teams.map((t: any) => (
-  <option key={t.id} value={t.id}>{t.name}</option>
-))}
+{teams.length === 0 ? (
+  <option disabled>Nessun club trovato (Variable Empty)</option>
+) : (
+  teams.map((t: any) => (
+    <option key={t.id} value={t.id}>
+      {t.name || t.club_name || "Nome mancante"} 
+    </option>
+  ))
+)}
               </select>
               <div className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none">
                 <ChevronRight className="w-5 h-5 text-slate-300 rotate-90" />
