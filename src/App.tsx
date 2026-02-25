@@ -251,10 +251,11 @@ function PrivateApp() {
   };
 
   const addTeamToTournament = (teamId: string) => {
-    if (!activeTournamentId) return;
-    if (tournamentTeams.some(tt => tt.tournamentId === activeTournamentId && tt.teamId === teamId)) return;
-    setTournamentTeams([...tournamentTeams, { tournamentId: activeTournamentId, teamId }]);
-  };
+  console.log("DEBUG addTeamToTournament - teamId:", teamId, "activeTournamentId:", activeTournamentId);
+  if (!activeTournamentId) return;
+  if (tournamentTeams.some(tt => tt.tournamentId === activeTournamentId && tt.teamId === teamId)) return;
+  setTournamentTeams([...tournamentTeams, { tournamentId: activeTournamentId, teamId }]);
+};
 
   const createAndAddTeam = async (teamData: { name: string; logoUrl?: string; colors?: string }) => {
     if (!user) return;
