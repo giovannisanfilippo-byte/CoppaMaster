@@ -422,10 +422,15 @@ function PrivateApp() {
   };
 
   const generateKnockoutCalendar = (currentTeams: Team[]): Match[] => {
-    const newMatches: Match[] = [];
+    const generateUUID = () => {
+      return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+        const r = Math.random() * 16 | 0;
+        const v = c === 'x' ? r : (r & 0x3 | 0x8);
+        return v.toString(16);
+      });
+    };
+
     const numTeams = currentTeams.length;
-    
-    // Determine bracket size (2, 4, 8, 16, 32)
     let bracketSize = 2;
     while (bracketSize < numTeams) bracketSize *= 2;
 
@@ -433,7 +438,7 @@ function PrivateApp() {
       const roundMatches: Match[] = [];
       for (let i = 0; i < size / 2; i++) {
         const match: Match = {
-          id: Math.random().toString(36).substr(2, 9), // Temp ID for linking
+          id: generateUUID(),
           tournamentId: activeTournamentId!,
           teamAId: null,
           teamBId: null,
@@ -451,7 +456,6 @@ function PrivateApp() {
       return roundMatches;
     };
 
-    // Build rounds from Final to start
     let currentSize = 2;
     let lastRoundMatches: Match[] | null = null;
     const allKnockoutMatches: Match[] = [];
@@ -462,7 +466,6 @@ function PrivateApp() {
       currentSize *= 2;
     }
 
-    // Fill first round with teams
     const firstRoundMatches = allKnockoutMatches.filter(m => m.round === bracketSize);
     const shuffledTeams = [...currentTeams].sort(() => Math.random() - 0.5);
     
