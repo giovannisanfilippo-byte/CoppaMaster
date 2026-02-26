@@ -1307,26 +1307,37 @@ function SetupView({ onCreate, onBack }: { onCreate: (name: string, type: Tourna
 function TeamRegistrationView({ tournament, teams: initialTeams, currentTournamentTeams, onAddExistingTeam, onCreateAndAddTeam, onRemoveTeam, onGenerate }: any) {
   const [name, setName] = useState('');
   const [localTeams, setLocalTeams] = useState(initialTeams || []);
+  const [selectedTeams, setSelectedTeams] = useState<any[]>([]);
 
   useEffect(() => {
     const loadTeams = async () => {
       const { data } = await supabase.from('teams').select('*');
       if (data && data.length > 0) {
-        console.log("DEBUG locale - club caricati:", data);
         setLocalTeams(data.map((t: any) => ({
           id: t.id,
           name: t.name || t.nome || t.club_name || "Squadra senza nome",
           logoUrl: t.logo_url || "",
           colors: t.colors || []
         })));
-      } else {
-        setLocalTeams(initialTeams || []);
       }
     };
     loadTeams();
   }, []);
 
-  const canGenerate = currentTournamentTeams.length >= 2 && currentTournamentTeams.length === tournament.maxTeams;
+  const handleAddTeam = (teamId: string) => {
+    const team = localTeams.find((t: any) => t.id === teamId);
+    if (team && !selectedTeams.find((t: any) => t.id === teamId)) {
+      setSelectedTeams([...selectedTeams, team]);
+      onAddExistingTeam(teamId);
+    }
+  };
+
+  const handleRemoveTeam = (teamId: string) => {
+    setSelectedTeams(selectedTeams.filter((t: any) => t.id !== teamId));
+    onRemoveTeam(teamId);
+  };
+
+  const canGenerate = selectedTeams.length >= 2 && selectedTeams.length === tournament.maxTeams;
 
   return (
     <div className="min-h-screen bg-slate-50 p-6">
