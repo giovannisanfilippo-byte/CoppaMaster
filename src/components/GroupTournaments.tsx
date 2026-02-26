@@ -204,12 +204,21 @@ export const GroupTournaments = ({ onBack, onTournamentCreated }: { onBack: () =
               <div className="bg-blue-600 p-8 rounded-3xl text-white shadow-xl shadow-blue-500/20">
                 <h3 className="text-xl font-bold mb-2">Pronto per iniziare?</h3>
                 <p className="text-blue-100 mb-6">Hai selezionato {selectedTeams.length} squadre. Ora puoi dividerle in gironi.</p>
-                <div className="flex items-center gap-4 mb-6">
-                  <label className="text-white font-bold text-sm">Numero di gironi:</label>
-                  <select value={numGroups} onChange={e => setNumGroups(parseInt(e.target.value))} className="bg-white text-blue-600 font-black px-4 py-2 rounded-xl outline-none">
-                    {[2, 3, 4].map(n => <option key={n} value={n}>{n} gironi</option>)}
-                  </select>
-                </div>
+                <div className="flex flex-col gap-4 mb-6">
+  <div className="flex items-center gap-4">
+    <label className="text-white font-bold text-sm">Numero di gironi:</label>
+    <select value={numGroups} onChange={e => setNumGroups(parseInt(e.target.value))} className="bg-white text-blue-600 font-black px-4 py-2 rounded-xl outline-none">
+      {[2, 3, 4].map(n => <option key={n} value={n}>{n} gironi</option>)}
+    </select>
+  </div>
+  <div className="flex items-center gap-4">
+    <label className="text-white font-bold text-sm">Tipo partite:</label>
+    <select value={matchMode} onChange={e => setMatchMode(e.target.value as 'andata' | 'andata_ritorno')} className="bg-white text-blue-600 font-black px-4 py-2 rounded-xl outline-none">
+      <option value="andata">Solo Andata</option>
+      <option value="andata_ritorno">Andata e Ritorno</option>
+    </select>
+  </div>
+</div>
                 <button onClick={createGroups} disabled={selectedTeams.length < 3} className="bg-white text-blue-600 px-6 py-3 rounded-2xl font-black text-sm uppercase hover:bg-blue-50 disabled:opacity-50 transition-all">
                   Crea Gironi Automatici
                 </button>
