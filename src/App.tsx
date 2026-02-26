@@ -330,10 +330,10 @@ function PrivateApp() {
 
       setMatches([...matches, ...finalMatches]);
       setView('roster');
-    } catch (error) {
-      console.error('Error generating calendar:', error);
-      alert('Errore nel salvataggio del calendario.');
-    }
+   } catch (error: any) {
+  console.error('Error generating calendar:', error);
+  alert('Errore: ' + (error?.message || JSON.stringify(error)));
+}
   };
 
   const generateLeagueCalendar = (currentTeams: Team[]): Match[] => {
