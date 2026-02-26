@@ -278,17 +278,17 @@ function PrivateApp() {
     setTournamentTeams(tournamentTeams.filter(tt => !(tt.tournamentId === activeTournamentId && tt.teamId === teamId)));
   };
 
-  const generateCalendar = async () => {
-    if (!tournament || activeTournamentId === null) return;
-    const currentTeams = currentTournamentTeams;
-    if (currentTeams.length < 2) return;
-    
-    let newMatches: Match[] = [];
-    if (tournament.type === 'league') {
-      newMatches = generateLeagueCalendar(currentTeams);
-    } else {
-      newMatches = generateKnockoutCalendar(currentTeams);
-    }
+  const generateCalendar = async (teamsToUse?: Team[]) => {
+  if (!tournament || activeTournamentId === null) return;
+  const currentTeams = teamsToUse || currentTournamentTeams;
+  if (currentTeams.length < 2) return;
+  
+  let newMatches: Match[] = [];
+  if (tournament.type === 'league') {
+    newMatches = generateLeagueCalendar(currentTeams);
+  } else {
+    newMatches = generateKnockoutCalendar(currentTeams);
+  }
 
     try {
       // 1. Save Tournament Teams
