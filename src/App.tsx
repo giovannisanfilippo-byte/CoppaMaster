@@ -1001,24 +1001,30 @@ if (view === 'teams') {
                     className="absolute right-0 mt-2 w-48 bg-white rounded-2xl shadow-2xl border border-slate-100 py-2 z-50"
                   >
                     <button 
-                      onClick={() => setView('roster')}
-                      className="w-full px-4 py-2 text-left text-sm font-bold text-slate-700 hover:bg-slate-50 flex items-center gap-2"
-                    >
-                      Gestione Rose
-                    </button>
-                    <button 
-                      onClick={() => updateTournamentStatus(activeTournamentId!, tournament?.status === 'nascosto' ? 'attivo' : 'nascosto')}
-                      className="w-full px-4 py-2 text-left text-sm font-bold text-slate-700 hover:bg-slate-50 flex items-center gap-2"
-                    >
-                      {tournament?.status === 'nascosto' ? 'Mostra Torneo' : 'Nascondi Torneo'}
-                    </button>
-                    <div className="h-px bg-slate-100 my-1" />
-                    <button 
-                      onClick={() => deleteTournament(activeTournamentId!)}
-                      className="w-full px-4 py-2 text-left text-sm font-bold text-red-600 hover:bg-red-50 flex items-center gap-2"
-                    >
-                      Elimina Torneo
-                    </button>
+  onClick={() => setView('roster')}
+  className="w-full px-4 py-2 text-left text-sm font-bold text-slate-700 hover:bg-slate-50 flex items-center gap-2"
+>
+  Gestione Rose
+</button>
+<button 
+  onClick={() => { setIsReplaceTeamOpen(true); setIsSettingsOpen(false); }}
+  className="w-full px-4 py-2 text-left text-sm font-bold text-slate-700 hover:bg-slate-50 flex items-center gap-2"
+>
+  Sostituisci Squadra
+</button>
+<button 
+  onClick={() => updateTournamentStatus(activeTournamentId!, tournament?.status === 'nascosto' ? 'attivo' : 'nascosto')}
+  className="w-full px-4 py-2 text-left text-sm font-bold text-slate-700 hover:bg-slate-50 flex items-center gap-2"
+>
+  {tournament?.status === 'nascosto' ? 'Mostra Torneo' : 'Nascondi Torneo'}
+</button>
+<div className="h-px bg-slate-100 my-1" />
+<button 
+  onClick={() => deleteTournament(activeTournamentId!)}
+  className="w-full px-4 py-2 text-left text-sm font-bold text-red-600 hover:bg-red-50 flex items-center gap-2"
+>
+  Elimina Torneo
+</button>
                   </motion.div>
                 )}
               </AnimatePresence>
