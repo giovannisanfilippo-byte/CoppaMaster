@@ -541,11 +541,10 @@ function PrivateApp() {
 
     try {
       const savedEvent = await saveMatchEventDB({
-        match_id: matchId,
-        player_id: playerId,
-        event_type: type,
-        user_id: user.id
-      });
+  match_id: matchId,
+  player_id: playerId,
+  event_type: type
+});
 
       const newEvent: MatchEvent = {
         id: savedEvent.id,
