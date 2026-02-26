@@ -1192,13 +1192,66 @@ if (view === 'teams') {
       </AnimatePresence>
 
       {/* Global Modals */}
-      <ConfirmModal 
-        isOpen={confirmModal.isOpen}
-        onClose={() => setConfirmModal({ ...confirmModal, isOpen: false })}
-        onConfirm={confirmModal.onConfirm}
-        title={confirmModal.title}
-        message={confirmModal.message}
-      />
+      {isReplaceTeamOpen && (
+  <div className="fixed inset-0 z-[200] bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div className="bg-white w-full max-w-md rounded-3xl p-8 shadow-2xl space-y-6">
+      <h2 className="text-xl font-black text-slate-900">Sostituisci Squadra</h2>
+      <p className="text-sm text-slate-400">La nuova squadra prenderà il posto della vecchia con tutti i risultati, punti e gol già registrati.</p>
+      
+      <div className="space-y-2">
+        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Squadra da sostituire</label>
+        <select
+          className="w-full p-4 bg-slate-50 rounded-2xl border border-slate-200 outline-none font-bold"
+          value={replaceOldTeamId}
+          onChange={e => setReplaceOldTeamId(e.target.value)}
+        >
+          <option value="">Scegli squadra...</option>
+          {currentTournamentTeams.map(t => (
+            <option key={t.id} value={t.id}>{t.name}</option>
+          ))}
+        </select>
+      </div>
+
+      <div className="space-y-2">
+        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Nuova squadra</label>
+        <select
+          className="w-full p-4 bg-slate-50 rounded-2xl border border-slate-200 outline-none font-bold"
+          value={replaceNewTeamId}
+          onChange={e => setReplaceNewTeamId(e.target.value)}
+        >
+          <option value="">Scegli squadra...</option>
+          {teams.filter(t => !currentTournamentTeams.find(ct => ct.id === t.id)).map(t => (
+            <option key={t.id} value={t.id}>{t.name}</option>
+          ))}
+        </select>
+      </div>
+
+      <div className="flex gap-3">
+        <button
+          onClick={() => setIsReplaceTeamOpen(false)}
+          className="flex-1 py-3 rounded-2xl font-black text-sm text-slate-400 hover:text-slate-600 bg-slate-100"
+        >
+          Annulla
+        </button>
+        <button
+          disabled={!replaceOldTeamId || !replaceNewTeamId}
+          onClick={() => replaceTeamInTournament(replaceOldTeamId, replaceNewTeamId)}
+          className="flex-1 bg-indigo-600 text-white py-3 rounded-2xl font-black text-sm disabled:opacity-50 hover:bg-indigo-700 transition-all"
+        >
+          Sostituisci
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+
+<ConfirmModal 
+  isOpen={confirmModal.isOpen}
+  onClose={() => setConfirmModal({ ...confirmModal, isOpen: false })}
+  onConfirm={confirmModal.onConfirm}
+  title={confirmModal.title}
+  message={confirmModal.message}
+/>
     </div>
   );
 }
