@@ -19,7 +19,7 @@ import { GroupTournaments } from './components/GroupTournaments';
 
 // --- Types ---
 type TournamentType = 'league' | 'knockout';
-type EventType = 'goal' | 'assist';
+type EventType = 'gol' | 'assist';
 
 type TournamentStatus = 'attivo' | 'nascosto' | 'concluso';
 
@@ -506,7 +506,7 @@ function PrivateApp() {
 
   const removePlayer = (id: string) => {
     const playerToDelete = players.find(p => p.id === id);
-    const hasGoals = events.some(e => e.playerId === id && e.type === 'goal');
+    const hasGoals = events.some(e => e.playerId === id && e.type === 'gol');
     
     setConfirmModal({
       isOpen: true,
@@ -531,10 +531,10 @@ function PrivateApp() {
     if (!player) return;
 
     const isTeamA = player.teamId === match.teamAId;
-    const currentGoals = events.filter(e => e.matchId === matchId && e.type === 'goal' && players.find(p => p.id === e.playerId)?.teamId === player.teamId).length;
+    const currentGoals = events.filter(e => e.matchId === matchId && e.type === 'gol' && players.find(p => p.id === e.playerId)?.teamId === player.teamId).length;
     const scoreLimit = isTeamA ? match.scoreA : match.scoreB;
 
-    if (type === 'goal' && currentGoals >= scoreLimit) {
+    if (type === 'gol' && currentGoals >= scoreLimit) {
       alert(`Attenzione: Hai già assegnato tutti i ${scoreLimit} gol per questa squadra.`);
       return;
     }
@@ -639,7 +639,7 @@ function PrivateApp() {
     const stats: Record<string, { goals: number; name: string; team: string }> = {};
     
     events
-      .filter(e => e.type === 'goal' && tournamentMatchIds.has(e.matchId))
+      .filter(e => e.type === 'gol' && tournamentMatchIds.has(e.matchId))
       .forEach(e => {
         const player = players.find(p => p.id === e.playerId);
         if (!player) return;
