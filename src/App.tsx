@@ -100,6 +100,9 @@ function PrivateApp() {
   const [activeTab, setActiveTab] = useState<'matches' | 'standings' | 'scorers' | 'assists' | 'bracket'>('matches');
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [user, setUser] = useState<any>(null);
+  const [isReplaceTeamOpen, setIsReplaceTeamOpen] = useState(false);
+  const [replaceOldTeamId, setReplaceOldTeamId] = useState('');
+  const [replaceNewTeamId, setReplaceNewTeamId] = useState('');
   const [confirmModal, setConfirmModal] = useState<{ 
     isOpen: boolean; 
     title: string; 
