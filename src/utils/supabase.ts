@@ -128,14 +128,11 @@ export async function saveTournament(tournament: any) {
 export async function saveTournamentTeams(tournamentId: string, teamIds: string[], userId: string) {
   const records = teamIds.map(teamId => ({
     tournament_id: tournamentId,
-    club_id: teamId,
-    user_id: userId
+    club_id: teamId
   }));
-
   const { error } = await supabase
     .from('tournament_teams')
     .insert(records);
-
   if (error) throw error;
 }
 
