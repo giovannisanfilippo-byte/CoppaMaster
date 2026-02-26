@@ -632,27 +632,71 @@ function PrivateApp() {
   const standings = useMemo(() => {
     const stats: Record<string, any> = {};
     currentTournamentTeams.forEach(t => {
-      stats[t.id] = { name: t.name, p: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, pts: 0 };
+      stats[t.id] = { id: t.id, name: t.name, p: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, pts: 0 };
     });
 
-    matches
-      .filter(m => m.tournamentId === activeTournamentId && m.status === 'finished' && m.matchType === 'league_match')
-      .forEach(m => {
-        if (!m.teamAId || !m.teamBId) return;
-        const sA = stats[m.teamAId];
-        const sB = stats[m.teamBId];
-        if (!sA || !sB) return;
+    const finishedMatches = matches.filter(m => 
+      m.tournamentId === activeTournamentId && 
+      m.status === 'finished' && 
+      m.matchType === 'league_match'
+    );
 
-        sA.p++; sB.p++;
-        sA.gf += m.scoreA; sA.ga += m.scoreB;
-        sB.gf += m.scoreB; sB.ga += m.scoreA;
+    finishedMatches.forEach(m => {
+      if (!m.teamAId || !m.teamBId) return;
+      const sA = stats[m.teamAId];
+      const sB = stats[m.teamBId];
+      if (!sA || !sB) return;
 
-        if (m.scoreA > m.scoreB) { sA.w++; sB.l++; sA.pts += 3; }
-        else if (m.scoreB > m.scoreA) { sB.w++; sA.l++; sB.pts += 3; }
-        else { sA.d++; sB.d++; sA.pts += 1; sB.pts += 1; }
+      sA.p++; sB.p++;
+      sA.gf += m.scoreA; sA.ga += m.scoreB;
+      sB.gf += m.scoreB; sB.ga += m.scoreA;
+
+      if (m.scoreA > m.scoreB) { sA.w++; sB.l++; sA.pts += 3; }
+      else if (m.scoreB > m.scoreA) { sB.w++; sA.l++; sB.pts += 3; }
+      else { sA.d++; sB.d++; sA.pts += 1; sB.pts += 1; }
+    });
+
+    const getHeadToHead = (teamA: any, teamB: any) => {
+      const h2hMatches = finishedMatches.filter(m =>
+        (m.teamAId === teamA.id && m.teamBId === teamB.id) ||
+        (m.teamAId === teamB.id && m.teamBId === teamA.id)
+      );
+      let ptsA = 0, ptsB = 0, gfA = 0, gaA = 0;
+      h2hMatches.forEach(m => {
+        if (m.teamAId === teamA.id) {
+          gfA += m.scoreA; gaA += m.scoreB;
+          if (m.scoreA > m.scoreB) ptsA += 3;
+          else if (m.scoreA === m.scoreB) { ptsA += 1; ptsB += 1; }
+          else ptsB += 3;
+        } else {
+          gfA += m.scoreB; gaA += m.scoreA;
+          if (m.scoreB > m.scoreA) ptsA += 3;
+          else if (m.scoreA === m.scoreB) { ptsA += 1; ptsB += 1; }
+          else ptsB += 3;
+        }
       });
+      return { ptsA, ptsB, drA: gfA - gaA };
+    };
 
-    return Object.values(stats).sort((a, b) => b.pts - a.pts || (b.gf - b.ga) - (a.gf - a.ga));
+    return Object.values(stats).sort((a: any, b: any) => {
+      // 1. Punti totali
+      if (b.pts !== a.pts) return b.pts - a.pts;
+
+      // 2. Scontri diretti - punti
+      const h2h = getHeadToHead(a, b);
+      if (h2h.ptsA !== h2h.ptsB) return h2h.ptsB - h2h.ptsA;
+
+      // 3. Scontri diretti - differenza reti
+      if (h2h.drA !== 0) return -h2h.drA;
+
+      // 4. Differenza reti totale
+      const drA = a.gf - a.ga;
+      const drB = b.gf - b.ga;
+      if (drB !== drA) return drB - drA;
+
+      // 5. Spareggio necessario
+      return 0;
+    });
   }, [matches, currentTournamentTeams, activeTournamentId]);
 
   const scorerStats = useMemo(() => {
