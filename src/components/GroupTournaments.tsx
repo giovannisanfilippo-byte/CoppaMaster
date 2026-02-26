@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from "../utils/supabase";
 import { Trophy, ArrowLeft, Users, X, Save, AlertCircle, Award, RotateCcw } from 'lucide-react';
 
-export const GroupTournaments = ({ onBack }: { onBack: () => void }) => {
+export const GroupTournaments = ({ onBack, onTournamentCreated }: { onBack: () => void, onTournamentCreated?: () => void }) => {
   const [teams, setTeams] = useState<any[]>([]);
   const [players, setPlayers] = useState<any[]>([]);
   const [selectedTeams, setSelectedTeams] = useState<any[]>([]);
@@ -102,6 +102,7 @@ export const GroupTournaments = ({ onBack }: { onBack: () => void }) => {
       }
 
       setGroups(newGroups);
+if (onTournamentCreated) onTournamentCreated();
     } catch (error: any) {
       alert('Errore: ' + error.message);
     }
