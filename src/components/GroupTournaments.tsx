@@ -60,7 +60,9 @@ export const GroupTournaments = ({ onBack, onTournamentCreated }: { onBack: () =
         for (let i = 0; i < group.teams.length; i++) {
           for (let j = i + 1; j < group.teams.length; j++) {
             matchesToInsert.push({ tournament_id: tournament.id, team_a_id: group.teams[i].id, team_b_id: group.teams[j].id, score_a: 0, score_b: 0, status: 'scheduled', round: 1, match_type: `girone_${group.name}`, is_return_match: false, user_id: user.id });
-            matchesToInsert.push({ tournament_id: tournament.id, team_a_id: group.teams[j].id, team_b_id: group.teams[i].id, score_a: 0, score_b: 0, status: 'scheduled', round: 2, match_type: `girone_${group.name}`, is_return_match: true, user_id: user.id });
+if (matchMode === 'andata_ritorno') {
+  matchesToInsert.push({ tournament_id: tournament.id, team_a_id: group.teams[j].id, team_b_id: group.teams[i].id, score_a: 0, score_b: 0, status: 'scheduled', round: 2, match_type: `girone_${group.name}`, is_return_match: true, user_id: user.id });
+}
           }
         }
         const { data: savedMatches } = await supabase.from('matches').insert(matchesToInsert).select();
