@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from "../utils/supabase";
-import { Trophy, ArrowLeft, Users, X, Save, AlertCircle, Award, RotateCcw } from 'lucide-react';
+import { Trophy, ArrowLeft, Users, X, Award } from 'lucide-react';
 
 export const GroupTournaments = ({ onBack, onTournamentCreated }: { onBack: () => void, onTournamentCreated?: () => void }) => {
   const [teams, setTeams] = useState<any[]>([]);
@@ -11,7 +11,9 @@ export const GroupTournaments = ({ onBack, onTournamentCreated }: { onBack: () =
   const [tournamentId, setTournamentId] = useState<string | null>(null);
   const [selectedMatch, setSelectedMatch] = useState<any | null>(null);
   const [matchEvents, setMatchEvents] = useState<any[]>([]);
+  const [allEvents, setAllEvents] = useState<any[]>([]);
   const [user, setUser] = useState<any>(null);
+  const [activeTab, setActiveTab] = useState<'gironi' | 'marcatori' | 'assist'>('gironi');
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -33,9 +35,7 @@ export const GroupTournaments = ({ onBack, onTournamentCreated }: { onBack: () =
 
   const createGroups = async () => {
     if (selectedTeams.length < 3 || !user) return;
-
     try {
-      // 1. Crea torneo su Supabase
       const { data: tournament, error: tErr } = await supabase
         .from('tournaments')
         .insert([{ name: `Torneo Gironi ${new Date().toLocaleDateString('it-IT')}`, type: 'league', max_teams: selectedTeams.length, status: 'attivo', user_id: user.id }])
@@ -43,11 +43,9 @@ export const GroupTournaments = ({ onBack, onTournamentCreated }: { onBack: () =
       if (tErr) throw tErr;
       setTournamentId(tournament.id);
 
-      // 2. Salva tournament_teams
       const ttRecords = selectedTeams.map(t => ({ tournament_id: tournament.id, club_id: t.id }));
       await supabase.from('tournament_teams').insert(ttRecords);
 
-      // 3. Crea gironi
       const shuffled = [...selectedTeams].sort(() => Math.random() - 0.5);
       const groupNames = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
       const newGroups: any[] = [];
@@ -57,44 +55,21 @@ export const GroupTournaments = ({ onBack, onTournamentCreated }: { onBack: () =
       }
       shuffled.forEach((team, i) => newGroups[i % numGroups].teams.push(team));
 
-      // 4. Genera e salva partite per ogni girone
       for (const group of newGroups) {
         const matchesToInsert: any[] = [];
         for (let i = 0; i < group.teams.length; i++) {
           for (let j = i + 1; j < group.teams.length; j++) {
-            matchesToInsert.push({
-              tournament_id: tournament.id,
-              team_a_id: group.teams[i].id,
-              team_b_id: group.teams[j].id,
-              score_a: 0, score_b: 0,
-              status: 'scheduled',
-              round: 1,
-              match_type: `girone_${group.name}`,
-              is_return_match: false,
-              user_id: user.id
-            });
-            matchesToInsert.push({
-              tournament_id: tournament.id,
-              team_a_id: group.teams[j].id,
-              team_b_id: group.teams[i].id,
-              score_a: 0, score_b: 0,
-              status: 'scheduled',
-              round: 2,
-              match_type: `girone_${group.name}`,
-              is_return_match: true,
-              user_id: user.id
-            });
+            matchesToInsert.push({ tournament_id: tournament.id, team_a_id: group.teams[i].id, team_b_id: group.teams[j].id, score_a: 0, score_b: 0, status: 'scheduled', round: 1, match_type: `girone_${group.name}`, is_return_match: false, user_id: user.id });
+            matchesToInsert.push({ tournament_id: tournament.id, team_a_id: group.teams[j].id, team_b_id: group.teams[i].id, score_a: 0, score_b: 0, status: 'scheduled', round: 2, match_type: `girone_${group.name}`, is_return_match: true, user_id: user.id });
           }
         }
-
         const { data: savedMatches } = await supabase.from('matches').insert(matchesToInsert).select();
         if (savedMatches) {
           group.matches = savedMatches.map((m: any) => ({
             id: m.id,
             teamA: group.teams.find((t: any) => t.id === m.team_a_id),
             teamB: group.teams.find((t: any) => t.id === m.team_b_id),
-            scoreA: m.score_a,
-            scoreB: m.score_b,
+            scoreA: m.score_a, scoreB: m.score_b,
             played: m.status === 'finished',
             isReturn: m.is_return_match
           }));
@@ -102,7 +77,7 @@ export const GroupTournaments = ({ onBack, onTournamentCreated }: { onBack: () =
       }
 
       setGroups(newGroups);
-if (onTournamentCreated) onTournamentCreated();
+      if (onTournamentCreated) onTournamentCreated();
     } catch (error: any) {
       alert('Errore: ' + error.message);
     }
@@ -126,33 +101,32 @@ if (onTournamentCreated) onTournamentCreated();
     if (!selectedMatch || !user) return;
     const player = players.find(p => p.id === playerId);
     if (!player) return;
-
     const isTeamA = player.team_id === selectedMatch.teamA?.id;
     const currentGoals = matchEvents.filter(e => e.type === 'gol' && players.find(p => p.id === e.playerId)?.team_id === player.team_id).length;
     const scoreLimit = isTeamA ? selectedMatch.scoreA : selectedMatch.scoreB;
-
     if (type === 'gol' && currentGoals >= scoreLimit) {
       alert(`Hai già assegnato tutti i ${scoreLimit} gol per questa squadra.`);
       return;
     }
-
     const { data } = await supabase.from('match_events').insert([{ match_id: selectedMatch.id, player_id: playerId, event_type: type }]).select().single();
-    if (data) setMatchEvents([...matchEvents, { id: data.id, matchId: data.match_id, playerId: data.player_id, type: data.event_type }]);
+    if (data) {
+      const newEvent = { id: data.id, matchId: data.match_id, playerId: data.player_id, type: data.event_type };
+      setMatchEvents([...matchEvents, newEvent]);
+      setAllEvents([...allEvents, newEvent]);
+    }
   };
 
   const removeEvent = async (eventId: string) => {
     await supabase.from('match_events').delete().eq('id', eventId);
     setMatchEvents(matchEvents.filter(e => e.id !== eventId));
+    setAllEvents(allEvents.filter(e => e.id !== eventId));
   };
 
   const getGroupStandings = (group: any) => {
     const stats: Record<string, any> = {};
-    group.teams.forEach((t: any) => {
-      stats[t.id] = { name: t.name, p: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, pts: 0 };
-    });
+    group.teams.forEach((t: any) => { stats[t.id] = { name: t.name, p: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, pts: 0 }; });
     group.matches.filter((m: any) => m.played).forEach((m: any) => {
-      const sA = stats[m.teamA?.id];
-      const sB = stats[m.teamB?.id];
+      const sA = stats[m.teamA?.id]; const sB = stats[m.teamB?.id];
       if (!sA || !sB) return;
       sA.p++; sB.p++;
       sA.gf += m.scoreA; sA.ga += m.scoreB;
@@ -162,6 +136,34 @@ if (onTournamentCreated) onTournamentCreated();
       else { sA.d++; sB.d++; sA.pts++; sB.pts++; }
     });
     return Object.values(stats).sort((a: any, b: any) => b.pts - a.pts || (b.gf - b.ga) - (a.gf - a.ga));
+  };
+
+  const getScorerStats = () => {
+    const stats: Record<string, any> = {};
+    allEvents.filter(e => e.type === 'gol').forEach(e => {
+      const player = players.find(p => p.id === e.playerId);
+      if (!player) return;
+      if (!stats[e.playerId]) {
+        const team = teams.find(t => t.id === player.team_id);
+        stats[e.playerId] = { name: player.name, team: team?.name || '', goals: 0 };
+      }
+      stats[e.playerId].goals++;
+    });
+    return Object.values(stats).sort((a: any, b: any) => b.goals - a.goals);
+  };
+
+  const getAssistStats = () => {
+    const stats: Record<string, any> = {};
+    allEvents.filter(e => e.type === 'assist').forEach(e => {
+      const player = players.find(p => p.id === e.playerId);
+      if (!player) return;
+      if (!stats[e.playerId]) {
+        const team = teams.find(t => t.id === player.team_id);
+        stats[e.playerId] = { name: player.name, team: team?.name || '', assists: 0 };
+      }
+      stats[e.playerId].assists++;
+    });
+    return Object.values(stats).sort((a: any, b: any) => b.assists - a.assists);
   };
 
   return (
@@ -186,14 +188,10 @@ if (onTournamentCreated) onTournamentCreated();
               </h2>
               <div className="space-y-2 max-h-[500px] overflow-y-auto">
                 {teams.map(team => (
-                  <div
-                    key={team.id}
+                  <div key={team.id}
                     onClick={() => {
-                      if (selectedTeams.find(t => t.id === team.id)) {
-                        setSelectedTeams(selectedTeams.filter(t => t.id !== team.id));
-                      } else {
-                        setSelectedTeams([...selectedTeams, team]);
-                      }
+                      if (selectedTeams.find(t => t.id === team.id)) setSelectedTeams(selectedTeams.filter(t => t.id !== team.id));
+                      else setSelectedTeams([...selectedTeams, team]);
                     }}
                     className={`p-3 rounded-xl border cursor-pointer transition-all ${selectedTeams.find(t => t.id === team.id) ? 'border-blue-500 bg-blue-50' : 'border-slate-100 hover:border-slate-300'}`}
                   >
@@ -202,44 +200,43 @@ if (onTournamentCreated) onTournamentCreated();
                 ))}
               </div>
             </div>
-
             <div className="md:col-span-2 space-y-6">
               <div className="bg-blue-600 p-8 rounded-3xl text-white shadow-xl shadow-blue-500/20">
                 <h3 className="text-xl font-bold mb-2">Pronto per iniziare?</h3>
                 <p className="text-blue-100 mb-6">Hai selezionato {selectedTeams.length} squadre. Ora puoi dividerle in gironi.</p>
                 <div className="flex items-center gap-4 mb-6">
                   <label className="text-white font-bold text-sm">Numero di gironi:</label>
-                  <select
-                    value={numGroups}
-                    onChange={e => setNumGroups(parseInt(e.target.value))}
-                    className="bg-white text-blue-600 font-black px-4 py-2 rounded-xl outline-none"
-                  >
+                  <select value={numGroups} onChange={e => setNumGroups(parseInt(e.target.value))} className="bg-white text-blue-600 font-black px-4 py-2 rounded-xl outline-none">
                     {[2, 3, 4].map(n => <option key={n} value={n}>{n} gironi</option>)}
                   </select>
                 </div>
-                <button
-                  onClick={createGroups}
-                  disabled={selectedTeams.length < 3}
-                  className="bg-white text-blue-600 px-6 py-3 rounded-2xl font-black text-sm uppercase hover:bg-blue-50 disabled:opacity-50 transition-all"
-                >
+                <button onClick={createGroups} disabled={selectedTeams.length < 3} className="bg-white text-blue-600 px-6 py-3 rounded-2xl font-black text-sm uppercase hover:bg-blue-50 disabled:opacity-50 transition-all">
                   Crea Gironi Automatici
                 </button>
               </div>
             </div>
           </div>
         ) : (
-          <div className="space-y-8">
-            <button onClick={() => setGroups([])} className="text-sm font-bold text-slate-400 hover:text-slate-600">
-              ← Riconfigura gironi
-            </button>
+          <div className="space-y-6">
+            <div className="flex items-center gap-4">
+              <button onClick={() => setGroups([])} className="text-sm font-bold text-slate-400 hover:text-slate-600">← Riconfigura gironi</button>
+              <div className="flex gap-2 bg-white border border-slate-200 p-1 rounded-2xl">
+                {(['gironi', 'marcatori', 'assist'] as const).map(tab => (
+                  <button key={tab} onClick={() => setActiveTab(tab)}
+                    className={`px-4 py-2 rounded-xl text-xs font-black uppercase transition-all ${activeTab === tab ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-slate-600'}`}
+                  >
+                    {tab === 'gironi' ? '🏆 Gironi' : tab === 'marcatori' ? '⚽ Marcatori' : '🎯 Assist'}
+                  </button>
+                ))}
+              </div>
+            </div>
 
-            {groups.map((group, groupIdx) => (
+            {activeTab === 'gironi' && groups.map((group, groupIdx) => (
               <div key={group.name} className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
                 <div className="bg-blue-600 px-6 py-4">
                   <h2 className="text-white font-black text-lg">Girone {group.name}</h2>
                 </div>
                 <div className="grid md:grid-cols-2 gap-6 p-6">
-                  {/* Classifica */}
                   <div>
                     <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3">Classifica</h3>
                     <table className="w-full text-sm">
@@ -271,32 +268,17 @@ if (onTournamentCreated) onTournamentCreated();
                       </tbody>
                     </table>
                   </div>
-
-                  {/* Partite */}
                   <div>
                     <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3">Partite</h3>
                     <div className="space-y-2">
                       {group.matches.map((match: any, matchIdx: number) => (
                         <div key={matchIdx} className="flex items-center gap-2 p-2 bg-slate-50 rounded-xl">
                           <span className="text-xs font-bold text-slate-600 flex-1 text-right truncate">{match.teamA?.name}</span>
-                          <input
-                            type="number" min="0"
-                            className="w-10 h-8 text-center text-sm font-black bg-white rounded-lg border border-slate-200 outline-none"
-                            value={match.scoreA}
-                            onChange={e => updateScore(groupIdx, matchIdx, parseInt(e.target.value) || 0, match.scoreB)}
-                          />
+                          <input type="number" min="0" className="w-10 h-8 text-center text-sm font-black bg-white rounded-lg border border-slate-200 outline-none" value={match.scoreA} onChange={e => updateScore(groupIdx, matchIdx, parseInt(e.target.value) || 0, match.scoreB)} />
                           <span className="text-[10px] font-black text-slate-300">VS</span>
-                          <input
-                            type="number" min="0"
-                            className="w-10 h-8 text-center text-sm font-black bg-white rounded-lg border border-slate-200 outline-none"
-                            value={match.scoreB}
-                            onChange={e => updateScore(groupIdx, matchIdx, match.scoreA, parseInt(e.target.value) || 0)}
-                          />
+                          <input type="number" min="0" className="w-10 h-8 text-center text-sm font-black bg-white rounded-lg border border-slate-200 outline-none" value={match.scoreB} onChange={e => updateScore(groupIdx, matchIdx, match.scoreA, parseInt(e.target.value) || 0)} />
                           <span className="text-xs font-bold text-slate-600 flex-1 truncate">{match.teamB?.name}</span>
-                          <button
-                            onClick={() => openMatchReport(match)}
-                            className="text-[10px] font-black uppercase tracking-widest text-blue-600 bg-blue-50 px-2 py-1 rounded-full hover:bg-blue-100 transition-colors whitespace-nowrap"
-                          >
+                          <button onClick={() => openMatchReport(match)} className="text-[10px] font-black uppercase tracking-widest text-blue-600 bg-blue-50 px-2 py-1 rounded-full hover:bg-blue-100 transition-colors whitespace-nowrap">
                             Referto
                           </button>
                         </div>
@@ -306,6 +288,68 @@ if (onTournamentCreated) onTournamentCreated();
                 </div>
               </div>
             ))}
+
+            {activeTab === 'marcatori' && (
+              <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+                <div className="bg-blue-600 px-6 py-4">
+                  <h2 className="text-white font-black text-lg">⚽ Classifica Marcatori</h2>
+                </div>
+                <table className="w-full text-sm">
+                  <thead className="bg-slate-50 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">
+                    <tr>
+                      <th className="px-4 py-4">Pos</th>
+                      <th className="px-4 py-4">Giocatore</th>
+                      <th className="px-4 py-4">Squadra</th>
+                      <th className="px-4 py-4 text-center">Gol</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {getScorerStats().length === 0 && (
+                      <tr><td colSpan={4} className="px-4 py-12 text-center text-slate-400 italic">Nessun marcatore registrato.</td></tr>
+                    )}
+                    {getScorerStats().map((s: any, i: number) => (
+                      <tr key={s.name} className="hover:bg-slate-50">
+                        <td className="px-4 py-4 font-black text-slate-300">{i + 1}</td>
+                        <td className="px-4 py-4 font-bold text-slate-700">{s.name}</td>
+                        <td className="px-4 py-4 text-slate-400">{s.team}</td>
+                        <td className="px-4 py-4 text-center font-black text-blue-600">{s.goals}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {activeTab === 'assist' && (
+              <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+                <div className="bg-blue-600 px-6 py-4">
+                  <h2 className="text-white font-black text-lg">🎯 Classifica Assist</h2>
+                </div>
+                <table className="w-full text-sm">
+                  <thead className="bg-slate-50 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">
+                    <tr>
+                      <th className="px-4 py-4">Pos</th>
+                      <th className="px-4 py-4">Giocatore</th>
+                      <th className="px-4 py-4">Squadra</th>
+                      <th className="px-4 py-4 text-center">Assist</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {getAssistStats().length === 0 && (
+                      <tr><td colSpan={4} className="px-4 py-12 text-center text-slate-400 italic">Nessun assist registrato.</td></tr>
+                    )}
+                    {getAssistStats().map((s: any, i: number) => (
+                      <tr key={s.name} className="hover:bg-slate-50">
+                        <td className="px-4 py-4 font-black text-slate-300">{i + 1}</td>
+                        <td className="px-4 py-4 font-bold text-slate-700">{s.name}</td>
+                        <td className="px-4 py-4 text-slate-400">{s.team}</td>
+                        <td className="px-4 py-4 text-center font-black text-blue-600">{s.assists}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -317,9 +361,7 @@ if (onTournamentCreated) onTournamentCreated();
             <div className="p-6 bg-slate-900 text-white">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xs font-black uppercase tracking-widest text-slate-400">Referto Partita</h2>
-                <button onClick={() => setSelectedMatch(null)} className="bg-white/10 p-2 rounded-full hover:bg-white/20">
-                  <X className="w-5 h-5" />
-                </button>
+                <button onClick={() => setSelectedMatch(null)} className="bg-white/10 p-2 rounded-full hover:bg-white/20"><X className="w-5 h-5" /></button>
               </div>
               <div className="flex items-center justify-center gap-8">
                 <div className="flex-1 text-right font-black text-lg">{selectedMatch.teamA?.name}</div>
@@ -331,7 +373,6 @@ if (onTournamentCreated) onTournamentCreated();
                 <div className="flex-1 font-black text-lg">{selectedMatch.teamB?.name}</div>
               </div>
             </div>
-
             <div className="flex-1 overflow-y-auto p-6">
               <div className="grid md:grid-cols-2 gap-6">
                 {[selectedMatch.teamA, selectedMatch.teamB].map((team: any) => (
@@ -346,21 +387,13 @@ if (onTournamentCreated) onTournamentCreated();
                           <div className="flex-1">
                             <div className="text-sm font-bold text-slate-800">{player.name}</div>
                             <div className="flex gap-1 mt-1 flex-wrap">
-                              {goals.map((g: any) => (
-                                <button key={g.id} onClick={() => removeEvent(g.id)} className="w-5 h-5 bg-emerald-100 text-emerald-600 rounded-md flex items-center justify-center text-[8px] font-black hover:bg-red-100 hover:text-red-600">G</button>
-                              ))}
-                              {assists.map((a: any) => (
-                                <button key={a.id} onClick={() => removeEvent(a.id)} className="w-5 h-5 bg-blue-100 text-blue-600 rounded-md flex items-center justify-center text-[8px] font-black hover:bg-red-100 hover:text-red-600">A</button>
-                              ))}
+                              {goals.map((g: any) => <button key={g.id} onClick={() => removeEvent(g.id)} className="w-5 h-5 bg-emerald-100 text-emerald-600 rounded-md flex items-center justify-center text-[8px] font-black hover:bg-red-100 hover:text-red-600">G</button>)}
+                              {assists.map((a: any) => <button key={a.id} onClick={() => removeEvent(a.id)} className="w-5 h-5 bg-blue-100 text-blue-600 rounded-md flex items-center justify-center text-[8px] font-black hover:bg-red-100 hover:text-red-600">A</button>)}
                             </div>
                           </div>
                           <div className="flex gap-1">
-                            <button onClick={() => addEvent(player.id, 'gol')} className="p-2 bg-white text-slate-400 rounded-lg hover:bg-emerald-50 hover:text-emerald-600 transition-all" title="Aggiungi Gol">
-                              <Trophy className="w-3.5 h-3.5" />
-                            </button>
-                            <button onClick={() => addEvent(player.id, 'assist')} className="p-2 bg-white text-slate-400 rounded-lg hover:bg-blue-50 hover:text-blue-600 transition-all" title="Aggiungi Assist">
-                              <Award className="w-3.5 h-3.5" />
-                            </button>
+                            <button onClick={() => addEvent(player.id, 'gol')} className="p-2 bg-white text-slate-400 rounded-lg hover:bg-emerald-50 hover:text-emerald-600 transition-all" title="Aggiungi Gol"><Trophy className="w-3.5 h-3.5" /></button>
+                            <button onClick={() => addEvent(player.id, 'assist')} className="p-2 bg-white text-slate-400 rounded-lg hover:bg-blue-50 hover:text-blue-600 transition-all" title="Aggiungi Assist"><Award className="w-3.5 h-3.5" /></button>
                           </div>
                         </div>
                       );
@@ -369,14 +402,8 @@ if (onTournamentCreated) onTournamentCreated();
                 ))}
               </div>
             </div>
-
             <div className="p-4 border-t border-slate-100 bg-slate-50 flex justify-end">
-              <button
-                onClick={() => setSelectedMatch(null)}
-                className="bg-blue-600 text-white px-8 py-3 rounded-2xl font-black text-sm hover:bg-blue-700 transition-all"
-              >
-                Chiudi
-              </button>
+              <button onClick={() => setSelectedMatch(null)} className="bg-blue-600 text-white px-8 py-3 rounded-2xl font-black text-sm hover:bg-blue-700 transition-all">Chiudi</button>
             </div>
           </div>
         </div>
