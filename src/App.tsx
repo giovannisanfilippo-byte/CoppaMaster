@@ -137,10 +137,10 @@ function PrivateApp() {
     if (!user) return;
     try {
       const [clubsDataResponse, tournamentsData, playersDataResponse] = await Promise.all([
-        supabase.from('teams').select('*').eq('user_id', user.id),
-        fetchTournaments(user.id),
-        supabase.from('players').select('*').eq('user_id', user.id)
-      ]);
+  supabase.from('teams').select('*').eq('user_id', user.id),
+  fetchTournaments(user.id),
+  supabase.from('players').select('*')
+]);
 
       // Gestione Club
       if (clubsDataResponse.data) {
