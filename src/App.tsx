@@ -134,56 +134,47 @@ function PrivateApp() {
   }, [user]);
 
   const loadUserData = async () => {
-    if (!user) return;
-    try {
-      const [clubsDataResponse, tournamentsData, playersDataResponse] = await Promise.all([
-  supabase.from('teams').select('*'),
-  fetchTournaments(user.id),
-  supabase.from('players').select('*')
-]);
+  if (!user) return;
+  try {
+    const [clubsDataResponse, tournamentsData, playersDataResponse] = await Promise.all([
+      supabase.from('teams').select('*'),
+      fetchTournaments(user.id),
+      supabase.from('players').select('*')
+    ]);
 
-      // Gestione Club
-      if (clubsDataResponse.data) {
-        const formattedTeams = clubsDataResponse.data.map((t: any) => ({
-          id: t.id,
-          name: t.name || t.nome || t.club_name || t.team_name || "Squadra senza nome",
-          logoUrl: t.logo_url || t.logo || "",
-          colors: t.colors || []
-        }));
-        setTeams(formattedTeams);
-      } else {
-        setTeams([]);
-      }
-
-      // Gestione Tornei
-      if (tournamentsData) {
-        setTournaments(tournamentsData.map((t: any) => ({
-          id: t.id,
-          name: t.name,
-          type: t.type,
-          maxTeams: t.max_teams,
-          status: t.status
-        })));
-      }
-
-      // Gestione Giocatori
-      if (playersDataResponse.data) {
-        const formattedPlayers = playersDataResponse.data.map((p: any) => ({
-          id: p.id,
-          teamId: p.team_id,
-          name: p.name,
-          number: p.number,
-          playerExternalId: p.player_external_id
-        }));
-        setPlayers(formattedPlayers);
-      } else {
-        setPlayers([]);
-      }
-
-    } catch (error) {
-      console.error('Failed to load user data:', error);
+    if (clubsDataResponse.data) {
+      setTeams(clubsDataResponse.data.map((t: any) => ({
+        id: t.id,
+        name: t.name || t.nome || t.club_name || "Squadra senza nome",
+        logoUrl: t.logo_url || "",
+        colors: t.colors || []
+      })));
     }
-  };
+
+    if (tournamentsData) {
+      setTournaments(tournamentsData.map((t: any) => ({
+        id: t.id,
+        name: t.name,
+        type: t.type,
+        maxTeams: t.max_teams,
+        status: t.status
+      })));
+    }
+
+    if (playersDataResponse.data) {
+      setPlayers(playersDataResponse.data.map((p: any) => ({
+        id: p.id,
+        teamId: p.team_id,
+        name: p.name,
+        number: p.number,
+        playerExternalId: p.player_external_id
+      })));
+    }
+
+  } catch (error) {
+    console.error('Failed to load user data:', error);
+  }
+};
   
   const loadTournamentDetails = async (tournamentId: string) => {
   try {
