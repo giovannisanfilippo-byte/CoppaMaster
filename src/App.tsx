@@ -279,16 +279,29 @@ function PrivateApp() {
   };
 
   const generateCalendar = async (teamsToUse?: Team[]) => {
-  if (!tournament || activeTournamentId === null) return;
-  const currentTeams = teamsToUse || currentTournamentTeams;
-  if (currentTeams.length < 2) return;
-  
-  let newMatches: Match[] = [];
-  if (tournament.type === 'league') {
-    newMatches = generateLeagueCalendar(currentTeams);
-  } else {
-    newMatches = generateKnockoutCalendar(currentTeams);
-  }
+    if (!tournament || activeTournamentId === null) return;
+    const currentTeams = teamsToUse || currentTournamentTeams;
+    if (currentTeams.length < 2) return;
+
+    // Aggiorna lo stato padre con i team selezionati
+    if (teamsToUse) {
+      setTeams(prev => {
+        const existingIds = new Set(prev.map(t => t.id));
+        const newTeams = teamsToUse.filter(t => !existingIds.has(t.id));
+        return [...prev, ...newTeams];
+      });
+      setTournamentTeams(prev => [
+        ...prev.filter(tt => tt.tournamentId !== activeTournamentId),
+        ...teamsToUse.map(t => ({ tournamentId: activeTournamentId!, teamId: t.id }))
+      ]);
+    }
+    
+    let newMatches: Match[] = [];
+    if (tournament.type === 'league') {
+      newMatches = generateLeagueCalendar(currentTeams);
+    } else {
+      newMatches = generateKnockoutCalendar(currentTeams);
+    }
 
     try {
       // 1. Save Tournament Teams
@@ -330,10 +343,10 @@ function PrivateApp() {
 
       setMatches([...matches, ...finalMatches]);
       setView('roster');
-   } catch (error: any) {
-  console.error('Error generating calendar:', error);
-  alert('Errore: ' + (error?.message || JSON.stringify(error)));
-}
+    } catch (error: any) {
+      console.error('Error generating calendar:', error);
+      alert('Errore: ' + (error?.message || JSON.stringify(error)));
+    }
   };
 
   const generateLeagueCalendar = (currentTeams: Team[]): Match[] => {
