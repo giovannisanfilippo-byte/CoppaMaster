@@ -1436,12 +1436,12 @@ function TeamRegistrationView({ tournament, teams: initialTeams, currentTourname
           </div>
 
           <button 
-            disabled={!canGenerate}
-            onClick={onGenerate}
-            className="w-full bg-indigo-600 text-white font-black py-5 rounded-2xl shadow-2xl shadow-indigo-500/30 hover:bg-indigo-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
-          >
-            Genera Calendario <ChevronRight className="w-5 h-5" />
-          </button>
+  disabled={!canGenerate}
+  onClick={() => onGenerate(selectedTeams)}
+  className="w-full bg-indigo-600 text-white font-black py-5 rounded-2xl shadow-2xl shadow-indigo-500/30 hover:bg-indigo-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
+>
+  Genera Calendario <ChevronRight className="w-5 h-5" />
+</button>
         </div>
       </div>
     </div>
