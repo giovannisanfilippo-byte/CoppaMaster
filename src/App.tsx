@@ -905,12 +905,13 @@ function PrivateApp() {
   }
 
  if (view === 'gironi') {
-    return (
-      <GroupTournaments 
-        onBack={() => setView('home')} 
-      />
-    );
-  } 
+  return (
+    <GroupTournaments 
+      onBack={() => setView('home')}
+      onTournamentCreated={() => loadUserData()}
+    />
+  );
+}
 
 if (view === 'teams') {
   return (
