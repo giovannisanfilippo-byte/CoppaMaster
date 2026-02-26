@@ -128,7 +128,7 @@ export async function saveTournament(tournament: any) {
 export async function saveTournamentTeams(tournamentId: string, teamIds: string[], userId: string) {
   const records = teamIds.map(teamId => ({
     tournament_id: tournamentId,
-    team_id: teamId,
+    club_id: teamId,
     user_id: userId
   }));
 
