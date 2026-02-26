@@ -178,9 +178,7 @@ function PrivateApp() {
   
   const loadTournamentDetails = async (tournamentId: string) => {
   try {
-    const data = await fetchTournamentData(tournamentId);
-
-    // Carica i tournament_teams dal DB
+    // 1. Carica tournament_teams
     const { data: ttData } = await supabase
       .from('tournament_teams')
       .select('*')
@@ -191,38 +189,59 @@ function PrivateApp() {
         ...prev.filter(tt => tt.tournamentId !== tournamentId),
         ...ttData.map((tt: any) => ({
           tournamentId: tt.tournament_id,
-          teamId: tt.club_id  // usa club_id come da struttura DB
+          teamId: tt.club_id
         }))
       ]);
     }
 
-    setMatches(prev => [
-      ...prev.filter(m => m.tournamentId !== tournamentId),
-      ...data.matches.map((m: any) => ({
-        id: m.id,
-        tournamentId: m.tournament_id,
-        teamAId: m.team_a_id,
-        teamBId: m.team_b_id,
-        scoreA: m.score_a,
-        scoreB: m.score_b,
-        status: m.status,
-        round: m.round,
-        matchType: m.match_type,
-        isReturnMatch: m.is_return_match,
-        nextMatchId: m.next_match_id,
-        positionInRound: m.position_in_round
-      }))
-    ]);
+    // 2. Carica matches
+    const { data: matchesData } = await supabase
+      .from('matches')
+      .select('*')
+      .eq('tournament_id', tournamentId)
+      .order('round', { ascending: true });
 
-    setEvents(prev => [
-      ...prev.filter(e => !data.matches.some((m: any) => m.id === e.matchId)),
-      ...data.events.map((e: any) => ({
-        id: e.id,
-        matchId: e.match_id,
-        playerId: e.player_id,
-        type: e.event_type
-      }))
-    ]);
+    if (matchesData) {
+      setMatches(prev => [
+        ...prev.filter(m => m.tournamentId !== tournamentId),
+        ...matchesData.map((m: any) => ({
+          id: m.id,
+          tournamentId: m.tournament_id,
+          teamAId: m.team_a_id,
+          teamBId: m.team_b_id,
+          scoreA: m.score_a,
+          scoreB: m.score_b,
+          status: m.status,
+          round: m.round,
+          matchType: m.match_type,
+          isReturnMatch: m.is_return_match,
+          nextMatchId: m.next_match_id,
+          positionInRound: m.position_in_round
+        }))
+      ]);
+
+      // 3. Carica eventi basandosi sugli ID delle partite
+      const matchIds = matchesData.map((m: any) => m.id);
+      if (matchIds.length > 0) {
+        const { data: eventsData } = await supabase
+          .from('match_events')
+          .select('*')
+          .in('match_id', matchIds);
+
+        if (eventsData) {
+          setEvents(prev => [
+            ...prev.filter(e => !matchIds.includes(e.matchId)),
+            ...eventsData.map((e: any) => ({
+              id: e.id,
+              matchId: e.match_id,
+              playerId: e.player_id,
+              type: e.event_type
+            }))
+          ]);
+        }
+      }
+    }
+
   } catch (error) {
     console.error('Failed to load tournament details:', error);
   }
