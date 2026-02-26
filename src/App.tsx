@@ -136,17 +136,15 @@ function PrivateApp() {
   const loadUserData = async () => {
     if (!user) return;
     try {
-      const [clubsDataResponse, tournamentsData] = await Promise.all([
+      const [clubsDataResponse, tournamentsData, playersDataResponse] = await Promise.all([
         supabase.from('teams').select('*').eq('user_id', user.id),
-        fetchTournaments(user.id)
+        fetchTournaments(user.id),
+        supabase.from('players').select('*').eq('user_id', user.id)
       ]);
 
-      const clubsData = clubsDataResponse.data;
-
       // Gestione Club
-      if (clubsData) {
-        console.log("DEBUG - Club ricevuti dal DB:", clubsData);
-        const formattedTeams = clubsData.map((t: any) => ({
+      if (clubsDataResponse.data) {
+        const formattedTeams = clubsDataResponse.data.map((t: any) => ({
           id: t.id,
           name: t.name || t.nome || t.club_name || t.team_name || "Squadra senza nome",
           logoUrl: t.logo_url || t.logo || "",
@@ -167,6 +165,21 @@ function PrivateApp() {
           status: t.status
         })));
       }
+
+      // Gestione Giocatori
+      if (playersDataResponse.data) {
+        const formattedPlayers = playersDataResponse.data.map((p: any) => ({
+          id: p.id,
+          teamId: p.team_id,
+          name: p.name,
+          number: p.number,
+          playerExternalId: p.player_external_id
+        }));
+        setPlayers(formattedPlayers);
+      } else {
+        setPlayers([]);
+      }
+
     } catch (error) {
       console.error('Failed to load user data:', error);
     }
