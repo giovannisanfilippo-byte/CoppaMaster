@@ -508,6 +508,53 @@ function PrivateApp() {
       alert("Si è verificato un errore: " + err.message);
     }
   };
+
+  const replaceTeamInTournament = async (oldTeamId: string, newTeamId: string) => {
+  if (!activeTournamentId) return;
+  try {
+    // 1. Aggiorna tournament_teams nel DB
+    await supabase
+      .from('tournament_teams')
+      .update({ club_id: newTeamId })
+      .eq('tournament_id', activeTournamentId)
+      .eq('club_id', oldTeamId);
+
+    // 2. Aggiorna le partite dove appare la vecchia squadra
+    await supabase
+      .from('matches')
+      .update({ team_a_id: newTeamId })
+      .eq('tournament_id', activeTournamentId)
+      .eq('team_a_id', oldTeamId);
+
+    await supabase
+      .from('matches')
+      .update({ team_b_id: newTeamId })
+      .eq('tournament_id', activeTournamentId)
+      .eq('team_b_id', oldTeamId);
+
+    // 3. Aggiorna lo stato locale - tournament_teams
+    setTournamentTeams(prev => prev.map(tt =>
+      tt.tournamentId === activeTournamentId && tt.teamId === oldTeamId
+        ? { ...tt, teamId: newTeamId }
+        : tt
+    ));
+
+    // 4. Aggiorna lo stato locale - matches
+    setMatches(prev => prev.map(m => {
+      if (m.tournamentId !== activeTournamentId) return m;
+      return {
+        ...m,
+        teamAId: m.teamAId === oldTeamId ? newTeamId : m.teamAId,
+        teamBId: m.teamBId === oldTeamId ? newTeamId : m.teamBId,
+      };
+    }));
+
+    alert('Squadra sostituita con successo!');
+    setIsReplaceTeamOpen(false);
+  } catch (error: any) {
+    alert('Errore: ' + error.message);
+  }
+};
   
   // --- Handlers: Roster ---
   const addPlayer = (teamId: string, name: string, number: number, playerExternalId: string) => {
