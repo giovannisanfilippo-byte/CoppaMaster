@@ -14,6 +14,7 @@ export const GroupTournaments = ({ onBack, onTournamentCreated }: { onBack: () =
   const [allEvents, setAllEvents] = useState<any[]>([]);
   const [user, setUser] = useState<any>(null);
   const [activeTab, setActiveTab] = useState<'gironi' | 'marcatori' | 'assist'>('gironi');
+  const [matchMode, setMatchMode] = useState<'andata' | 'andata_ritorno'>('andata_ritorno');
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
