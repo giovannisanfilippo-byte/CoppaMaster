@@ -9,7 +9,7 @@ interface MatchReportFormProps {
   players: any[];
   events: any[];
   onUpdateScore: (scoreA: number, scoreB: number) => void;
-  onAddEvent: (playerId: string, type: 'goal' | 'assist') => void;
+  onAddEvent: (playerId: string, type: 'gol' | 'assist') => void;
   onRemoveEvent: (eventId: string) => void;
   onClose: () => void;
 }
@@ -25,8 +25,8 @@ export function MatchReportForm({ match, teams, players, events, onUpdateScore, 
   const teamAPlayers = players.filter((p: any) => p.teamId === match.teamAId);
   const teamBPlayers = players.filter((p: any) => p.teamId === match.teamBId);
 
-  const teamAGoals = events.filter((e: any) => e.type === 'goal' && players.find((p: any) => p.id === e.playerId)?.teamId === match.teamAId).length;
-  const teamBGoals = events.filter((e: any) => e.type === 'goal' && players.find((p: any) => p.id === e.playerId)?.teamId === match.teamBId).length;
+  const teamAGoals = events.filter((e: any) => e.type === 'gol' && players.find((p: any) => p.id === e.playerId)?.teamId === match.teamAId).length;
+  const teamBGoals = events.filter((e: any) => e.type === 'gol' && players.find((p: any) => p.id === e.playerId)?.teamId === match.teamBId).length;
 
   const isValidA = teamAGoals === scoreA;
   const isValidB = teamBGoals === scoreB;
@@ -37,7 +37,6 @@ export function MatchReportForm({ match, teams, players, events, onUpdateScore, 
   };
 
   const handleReset = () => {
-    // Clear all events for this match
     events.forEach((e: any) => onRemoveEvent(e.id));
     setScoreA(0);
     setScoreB(0);
@@ -54,7 +53,6 @@ export function MatchReportForm({ match, teams, players, events, onUpdateScore, 
         initial={{ y: 100 }} animate={{ y: 0 }} exit={{ y: 100 }}
         className="bg-white w-full max-w-2xl rounded-t-3xl sm:rounded-3xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col"
       >
-        {/* Header with Score Inputs */}
         <div className="p-6 bg-slate-900 text-white">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-xs font-black uppercase tracking-[0.2em] text-slate-400">Referto Partita</h2>
@@ -101,7 +99,6 @@ export function MatchReportForm({ match, teams, players, events, onUpdateScore, 
           )}
 
           <div className="grid md:grid-cols-2 gap-8">
-            {/* Team A Section */}
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400">{teamA?.name}</h3>
@@ -122,7 +119,6 @@ export function MatchReportForm({ match, teams, players, events, onUpdateScore, 
               </div>
             </div>
 
-            {/* Team B Section */}
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400">{teamB?.name}</h3>
@@ -183,7 +179,7 @@ export function MatchReportForm({ match, teams, players, events, onUpdateScore, 
 }
 
 function PlayerEventRow({ player, events, onAdd, onRemove }: any) {
-  const goals = events.filter((e: any) => e.type === 'goal');
+  const goals = events.filter((e: any) => e.type === 'gol');
   const assists = events.filter((e: any) => e.type === 'assist');
 
   return (
@@ -201,7 +197,7 @@ function PlayerEventRow({ player, events, onAdd, onRemove }: any) {
       </div>
       <div className="flex gap-1">
         <button 
-          onClick={() => onAdd(player.id, 'goal')} 
+          onClick={() => onAdd(player.id, 'gol')} 
           className="p-2 bg-slate-50 text-slate-400 rounded-lg hover:bg-emerald-50 hover:text-emerald-600 transition-all"
           title="Aggiungi Gol"
         >
