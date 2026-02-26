@@ -186,44 +186,56 @@ function PrivateApp() {
   };
   
   const loadTournamentDetails = async (tournamentId: string) => {
-    try {
-      const data = await fetchTournamentData(tournamentId);
-      
-      // Update local state with tournament specific data
-      // We don't overwrite teams/players global list, but we might need to ensure they are present
-      // Actually, tournament_teams might include teams not in the global 'clubs' list if they were 'quick created'
-      // But for now, let's just load matches and events
-      setMatches(prev => [
-        ...prev.filter(m => m.tournamentId !== tournamentId),
-        ...data.matches.map((m: any) => ({
-          id: m.id,
-          tournamentId: m.tournament_id,
-          teamAId: m.team_a_id,
-          teamBId: m.team_b_id,
-          scoreA: m.score_a,
-          scoreB: m.score_b,
-          status: m.status,
-          round: m.round,
-          matchType: m.match_type,
-          isReturnMatch: m.is_return_match,
-          nextMatchId: m.next_match_id,
-          positionInRound: m.position_in_round
-        }))
-      ]);
+  try {
+    const data = await fetchTournamentData(tournamentId);
 
-      setEvents(prev => [
-        ...prev.filter(e => !data.matches.some(m => m.id === e.matchId)),
-        ...data.events.map((e: any) => ({
-          id: e.id,
-          matchId: e.match_id,
-          playerId: e.player_id,
-          type: e.event_type
+    // Carica i tournament_teams dal DB
+    const { data: ttData } = await supabase
+      .from('tournament_teams')
+      .select('*')
+      .eq('tournament_id', tournamentId);
+
+    if (ttData) {
+      setTournamentTeams(prev => [
+        ...prev.filter(tt => tt.tournamentId !== tournamentId),
+        ...ttData.map((tt: any) => ({
+          tournamentId: tt.tournament_id,
+          teamId: tt.club_id  // usa club_id come da struttura DB
         }))
       ]);
-    } catch (error) {
-      console.error('Failed to load tournament details:', error);
     }
-  };
+
+    setMatches(prev => [
+      ...prev.filter(m => m.tournamentId !== tournamentId),
+      ...data.matches.map((m: any) => ({
+        id: m.id,
+        tournamentId: m.tournament_id,
+        teamAId: m.team_a_id,
+        teamBId: m.team_b_id,
+        scoreA: m.score_a,
+        scoreB: m.score_b,
+        status: m.status,
+        round: m.round,
+        matchType: m.match_type,
+        isReturnMatch: m.is_return_match,
+        nextMatchId: m.next_match_id,
+        positionInRound: m.position_in_round
+      }))
+    ]);
+
+    setEvents(prev => [
+      ...prev.filter(e => !data.matches.some((m: any) => m.id === e.matchId)),
+      ...data.events.map((e: any) => ({
+        id: e.id,
+        matchId: e.match_id,
+        playerId: e.player_id,
+        type: e.event_type
+      }))
+    ]);
+  } catch (error) {
+    console.error('Failed to load tournament details:', error);
+  }
+};
 
   const tournament = useMemo(() => tournaments.find(t => t.id === activeTournamentId), [tournaments, activeTournamentId]);
   const currentTournamentTeams = useMemo(() => {
