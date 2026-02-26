@@ -523,6 +523,8 @@ function PrivateApp() {
   // --- Handlers: Match Report ---
   const addMatchEvent = async (matchId: string, playerId: string, type: EventType) => {
     const match = matches.find(m => m.id === matchId);
+    console.log("DEBUG addMatchEvent - match:", match);
+    console.log("DEBUG addMatchEvent - scoreA:", match?.scoreA, "scoreB:", match?.scoreB);
     if (!match) return;
 
     const player = players.find(p => p.id === playerId);
