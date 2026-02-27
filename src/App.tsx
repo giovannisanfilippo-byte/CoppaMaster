@@ -852,10 +852,16 @@ function PrivateApp() {
       <HomeView 
         tournaments={tournaments} 
         onSelect={(id: string) => { 
-          setActiveTournamentId(id); 
-          loadTournamentDetails(id);
-          setView('dashboard'); 
-        }}
+  setActiveTournamentId(id);
+  supabase.from('matches').select('match_type').eq('tournament_id', id).limit(1).then(({ data }) => {
+    if (data && data[0]?.match_type?.startsWith('girone_')) {
+      setView('gironi');
+    } else {
+      loadTournamentDetails(id);
+      setView('dashboard');
+    }
+  });
+}}
         onCreate={() => setView('setup')}
         onDelete={deleteTournament}
         onToggleStatus={(id: string, status: TournamentStatus) => updateTournamentStatus(id, status)}
@@ -958,8 +964,9 @@ function PrivateApp() {
  if (view === 'gironi') {
   return (
     <GroupTournaments 
-      onBack={() => setView('home')}
+      onBack={() => { setActiveTournamentId(null); setView('home'); }}
       onTournamentCreated={() => loadUserData()}
+      existingTournamentId={activeTournamentId || undefined}
     />
   );
 }
