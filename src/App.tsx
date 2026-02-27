@@ -428,17 +428,7 @@ function PrivateApp() {
     }
   };
 
-  setMatches([...matches, ...allMatches]);
-      }
-
-      setView('roster');
-    } catch (error: any) {
-      console.error('Error generating calendar:', error);
-      alert('Errore: ' + (error?.message || JSON.stringify(error)));
-    }
-  };
-
-  const generateLeagueCalendar = (currentTeams: Team[]): Match[] => {
+    const generateLeagueCalendar = (currentTeams: Team[]): Match[] => {
     const newMatches: Match[] = [];
     const teamIds = currentTeams.map(t => t.id);
     if (teamIds.length % 2 !== 0) teamIds.push('BYE');
