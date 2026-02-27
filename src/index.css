@@ -2,7 +2,7 @@
 
 body {
   position: relative;
-  background-image: url('https://img.freepik.com/free-photo/soccer-field-stadium_1232-2756.jpg');
+  background-image: url('/src/campo.jpg');
   background-size: cover;
   background-position: center;
   background-attachment: fixed;
