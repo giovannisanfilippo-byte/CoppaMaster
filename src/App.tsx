@@ -1266,17 +1266,16 @@ if (view === 'teams') {
   </div>
 )}
 
-<ConfirmModal 
-  isOpen={confirmModal.isOpen}
-  onClose={() => setConfirmModal({ ...confirmModal, isOpen: false })}
-  onConfirm={confirmModal.onConfirm}
-  title={confirmModal.title}
-  message={confirmModal.message}
-/>
-   </div>
+<ConfirmModal
+          isOpen={confirmModal.isOpen}
+          onClose={() => setConfirmModal({ ...confirmModal, isOpen: false })}
+          onConfirm={confirmModal.onConfirm}
+          title={confirmModal.title}
+          message={confirmModal.message}
+        />
+      </div>
     );
   }
-}
 
 // --- Sub-Components ---
 
