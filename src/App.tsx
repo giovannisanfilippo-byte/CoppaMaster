@@ -321,7 +321,6 @@ function PrivateApp() {
     const currentTeams = teamsToUse || currentTournamentTeams;
     if (currentTeams.length < 2) return;
 
-    // Aggiorna lo stato padre con i team selezionati
     if (teamsToUse) {
       setTeams(prev => {
         const existingIds = new Set(prev.map(t => t.id));
@@ -333,53 +332,133 @@ function PrivateApp() {
         ...teamsToUse.map(t => ({ tournamentId: activeTournamentId!, teamId: t.id }))
       ]);
     }
-    
-    let newMatches: Match[] = [];
-    if (tournament.type === 'league') {
-      newMatches = generateLeagueCalendar(currentTeams);
-    } else {
-      newMatches = generateKnockoutCalendar(currentTeams);
-    }
 
     try {
-      // 1. Save Tournament Teams
       await saveTournamentTeams(activeTournamentId, currentTeams.map(t => t.id), user.id);
 
-      // 2. Save Matches
-      const matchesToSave = newMatches.map(m => ({
-        tournament_id: m.tournamentId,
-        team_a_id: m.teamAId,
-        team_b_id: m.teamBId,
-        score_a: m.scoreA,
-        score_b: m.scoreB,
-        round: m.round,
-        match_type: m.matchType,
-        is_return_match: m.isReturnMatch,
-        status: m.status,
-        next_match_id: m.nextMatchId,
-        position_in_round: m.positionInRound,
-        user_id: user.id
-      }));
+      if (tournament.type === 'league') {
+        const newMatches = generateLeagueCalendar(currentTeams);
+        const matchesToSave = newMatches.map(m => ({
+          tournament_id: m.tournamentId,
+          team_a_id: m.teamAId,
+          team_b_id: m.teamBId,
+          score_a: m.scoreA,
+          score_b: m.scoreB,
+          round: m.round,
+          match_type: m.matchType,
+          is_return_match: m.isReturnMatch,
+          status: m.status,
+          next_match_id: null,
+          position_in_round: m.positionInRound,
+          user_id: user.id
+        }));
+        const savedMatches = await saveMatches(matchesToSave);
+        const finalMatches: Match[] = savedMatches.map((m: any) => ({
+          id: m.id,
+          tournamentId: m.tournament_id,
+          teamAId: m.team_a_id,
+          teamBId: m.team_b_id,
+          scoreA: m.score_a,
+          scoreB: m.score_b,
+          status: m.status,
+          round: m.round,
+          matchType: m.match_type,
+          isReturnMatch: m.is_return_match,
+          nextMatchId: m.next_match_id,
+          positionInRound: m.position_in_round
+        }));
+        setMatches([...matches, ...finalMatches]);
 
-      const savedMatches = await saveMatches(matchesToSave);
-      
-      // Update local state with DB IDs
-      const finalMatches: Match[] = savedMatches.map((m: any) => ({
-        id: m.id,
-        tournamentId: m.tournament_id,
-        teamAId: m.team_a_id,
-        teamBId: m.team_b_id,
-        scoreA: m.score_a,
-        scoreB: m.score_b,
-        status: m.status,
-        round: m.round,
-        matchType: m.match_type,
-        isReturnMatch: m.is_return_match,
-        nextMatchId: m.next_match_id,
-        positionInRound: m.position_in_round
-      }));
+      } else {
+        // KNOCKOUT: salva prima tutti i match senza next_match_id
+        const numTeams = currentTeams.length;
+        let bracketSize = 2;
+        while (bracketSize < numTeams) bracketSize *= 2;
 
-      setMatches([...matches, ...finalMatches]);
+        // Crea struttura dei round dal più piccolo al più grande
+        const rounds: { round: number, count: number }[] = [];
+        let r = 2;
+        while (r <= bracketSize) {
+          rounds.push({ round: r, count: r / 2 });
+          r *= 2;
+        }
+
+        // Salva round per round partendo dalla finale
+        const savedRounds: { round: number, matches: any[] }[] = [];
+        
+        for (const roundInfo of rounds) {
+          const matchesToSave = Array.from({ length: roundInfo.count }, (_, i) => ({
+            tournament_id: activeTournamentId,
+            team_a_id: null,
+            team_b_id: null,
+            score_a: 0,
+            score_b: 0,
+            round: roundInfo.round,
+            match_type: 'bracket_match',
+            is_return_match: false,
+            status: 'scheduled',
+            next_match_id: null,
+            position_in_round: i,
+            user_id: user.id
+          }));
+          const saved = await saveMatches(matchesToSave);
+          savedRounds.push({ round: roundInfo.round, matches: saved });
+        }
+
+        // Aggiorna next_match_id collegando ogni round al successivo
+        for (let i = 0; i < savedRounds.length - 1; i++) {
+          const currentRound = savedRounds[i];
+          const nextRound = savedRounds[i + 1];
+          
+          for (let j = 0; j < currentRound.matches.length; j++) {
+            const nextMatchIndex = Math.floor(j / 2);
+            const nextMatch = nextRound.matches[nextMatchIndex];
+            await supabase.from('matches')
+              .update({ next_match_id: nextMatch.id })
+              .eq('id', currentRound.matches[j].id);
+            currentRound.matches[j].next_match_id = nextMatch.id;
+          }
+        }
+
+        // Assegna squadre al primo round (quello con bracketSize)
+        const firstRound = savedRounds[savedRounds.length - 1];
+        const shuffledTeams = [...currentTeams].sort(() => Math.random() - 0.5);
+        
+        for (let i = 0; i < shuffledTeams.length; i++) {
+          const matchIndex = Math.floor(i / 2);
+          const isTeamB = i % 2 !== 0;
+          const matchId = firstRound.matches[matchIndex].id;
+          
+          if (isTeamB) {
+            await supabase.from('matches').update({ team_b_id: shuffledTeams[i].id }).eq('id', matchId);
+            firstRound.matches[matchIndex].team_b_id = shuffledTeams[i].id;
+          } else {
+            await supabase.from('matches').update({ team_a_id: shuffledTeams[i].id }).eq('id', matchId);
+            firstRound.matches[matchIndex].team_a_id = shuffledTeams[i].id;
+          }
+        }
+
+        // Costruisci array finale di match
+        const allMatches: Match[] = savedRounds.flatMap(sr => 
+          sr.matches.map((m: any) => ({
+            id: m.id,
+            tournamentId: m.tournament_id || activeTournamentId,
+            teamAId: m.team_a_id,
+            teamBId: m.team_b_id,
+            scoreA: m.score_a || 0,
+            scoreB: m.score_b || 0,
+            status: m.status || 'scheduled',
+            round: m.round,
+            matchType: 'bracket_match' as const,
+            isReturnMatch: false,
+            nextMatchId: m.next_match_id,
+            positionInRound: m.position_in_round
+          }))
+        );
+
+        setMatches([...matches, ...allMatches]);
+      }
+
       setView('roster');
     } catch (error: any) {
       console.error('Error generating calendar:', error);
