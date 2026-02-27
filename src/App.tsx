@@ -1000,7 +1000,7 @@ if (view === 'teams') {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50/60 text-slate-900 font-sans pb-24" onClick={() => setIsSettingsOpen(false)}>
+    <div className="min-h-screen text-slate-900 font-sans pb-24" onClick={() => setIsSettingsOpen(false)}>
       {/* Navbar */}
       <nav className="bg-slate-900 text-white p-4 sticky top-0 z-50 shadow-xl border-b border-slate-800">
         <div className="max-w-4xl mx-auto flex items-center justify-between">
