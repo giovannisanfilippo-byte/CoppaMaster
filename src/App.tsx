@@ -656,10 +656,16 @@ function PrivateApp() {
       if (tournament?.type === 'knockout') {
         const match = updatedMatches.find(m => m.id === matchId);
         
+        console.log("DEBUG tutti i matches:", updatedMatches.map(m => ({ id: m.id, nextMatchId: m.nextMatchId, round: m.round })));
+        console.log("DEBUG match corrente:", match);
+        console.log("DEBUG match corrente nextMatchId:", match?.nextMatchId);
+        
         if (match && match.nextMatchId) {
           const winnerId = scoreA > scoreB ? match.teamAId : scoreB > scoreA ? match.teamBId : null;
+          console.log("DEBUG winnerId:", winnerId);
           if (winnerId) {
             const nextMatchIndex = updatedMatches.findIndex(m => m.id === match.nextMatchId);
+            console.log("DEBUG nextMatchIndex:", nextMatchIndex);
             if (nextMatchIndex !== -1) {
               const isTeamB = (match.positionInRound || 0) % 2 !== 0;
               
