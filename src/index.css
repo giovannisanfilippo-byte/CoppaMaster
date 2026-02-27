@@ -1,1 +1,18 @@
 @import "tailwindcss";
+body {
+  position: relative;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: rgba(248, 250, 252, 0.85);
+  z-index: 0;
+  pointer-events: none;
+}
+
+#root {
+  position: relative;
+  z-index: 1;
+}
