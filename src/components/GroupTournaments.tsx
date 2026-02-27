@@ -131,34 +131,25 @@ export const GroupTournaments = ({ onBack, onTournamentCreated }: { onBack: () =
   const generatePlayoff = async () => {
     if (!tournamentId || !user) return;
 
-    // Raccogli classifiche per ogni girone
     const groupStandings = groups.map(g => ({ groupName: g.name, standings: getGroupStandings(g) }));
-
-    // Prime e seconde classificate
     const firsts = groupStandings.map(g => ({ ...g.standings[0], position: 1 }));
     const seconds = groupStandings.map(g => ({ ...g.standings[1], position: 2 }));
     const thirds = groupStandings.filter(g => g.standings.length >= 3).map(g => ({ ...g.standings[2], position: 3 }));
 
-    // Calcola quante squadre servono per completare il bracket
     let qualifiedTeams = [...firsts, ...seconds];
     let bracketSize = 2;
     while (bracketSize < qualifiedTeams.length) bracketSize *= 2;
 
-    // Aggiungi le migliori terze se servono
     if (qualifiedTeams.length < bracketSize && thirds.length > 0) {
       const sortedThirds = thirds.sort((a: any, b: any) => b.pts - a.pts || (b.gf - b.ga) - (a.gf - a.ga));
-      const needed = bracketSize - qualifiedTeams.length;
-      qualifiedTeams = [...qualifiedTeams, ...sortedThirds.slice(0, needed)];
+      qualifiedTeams = [...qualifiedTeams, ...sortedThirds.slice(0, bracketSize - qualifiedTeams.length)];
     }
 
-    // Crea accoppiamenti: prima vs seconda di gironi diversi, no stesso girone
+    // Crea accoppiamenti primo turno
     const matchups: any[] = [];
     const usedTeams = new Set<string>();
-
-    // Abbina ogni prima con una seconda di girone diverso
     for (const first of firsts) {
       if (usedTeams.has(first.id)) continue;
-      // Trova una seconda di girone diverso non ancora usata
       const opponent = seconds.find((s: any) => s.groupName !== first.groupName && !usedTeams.has(s.id));
       if (opponent) {
         matchups.push({ teamA: first, teamB: opponent });
@@ -166,51 +157,77 @@ export const GroupTournaments = ({ onBack, onTournamentCreated }: { onBack: () =
         usedTeams.add(opponent.id);
       }
     }
-
-    // Abbina le rimanenti
     const remaining = qualifiedTeams.filter(t => !usedTeams.has(t.id));
     for (let i = 0; i < remaining.length - 1; i += 2) {
-      if (remaining[i].groupName !== remaining[i + 1]?.groupName) {
-        matchups.push({ teamA: remaining[i], teamB: remaining[i + 1] });
-      } else {
-        // Stesse girone, cerca swap
-        const swapIdx = remaining.findIndex((t, idx) => idx > i + 1 && t.groupName !== remaining[i].groupName);
-        if (swapIdx !== -1) {
-          [remaining[i + 1], remaining[swapIdx]] = [remaining[swapIdx], remaining[i + 1]];
-        }
-        matchups.push({ teamA: remaining[i], teamB: remaining[i + 1] });
-      }
+      matchups.push({ teamA: remaining[i], teamB: remaining[i + 1] });
     }
 
     try {
-      // Salva le partite del playoff
-      const matchesToSave = matchups.map((m, idx) => ({
-        tournament_id: tournamentId,
-        team_a_id: m.teamA.id,
-        team_b_id: m.teamB.id,
-        score_a: 0, score_b: 0,
-        status: 'scheduled',
-        round: bracketSize,
-        match_type: 'playoff',
-        is_return_match: false,
-        position_in_round: idx,
-        user_id: user.id
-      }));
+      // Crea tutti i round del bracket dal più piccolo (finale) al più grande
+      const rounds: { round: number, count: number }[] = [];
+      let r = 2;
+      while (r <= bracketSize) {
+        rounds.push({ round: r, count: r / 2 });
+        r *= 2;
+      }
 
-      const { data: savedMatches } = await supabase.from('matches').insert(matchesToSave).select();
-      if (savedMatches) {
-        setPlayoffMatches(savedMatches.map((m: any, idx: number) => ({
+      // Salva tutti i round vuoti
+      const savedRounds: { round: number, matches: any[] }[] = [];
+      for (const roundInfo of rounds) {
+        const toInsert = Array.from({ length: roundInfo.count }, (_, i) => ({
+          tournament_id: tournamentId,
+          team_a_id: null,
+          team_b_id: null,
+          score_a: 0, score_b: 0,
+          status: 'scheduled',
+          round: roundInfo.round,
+          match_type: 'playoff',
+          is_return_match: false,
+          next_match_id: null,
+          position_in_round: i,
+          user_id: user.id
+        }));
+        const { data: saved } = await supabase.from('matches').insert(toInsert).select();
+        if (saved) savedRounds.push({ round: roundInfo.round, matches: saved });
+      }
+
+      // Collega next_match_id: dal round più grande al più piccolo
+      const reversedRounds = [...savedRounds].reverse();
+      for (let i = 0; i < reversedRounds.length - 1; i++) {
+        const currentRound = reversedRounds[i];
+        const nextRound = reversedRounds[i + 1];
+        for (let j = 0; j < currentRound.matches.length; j++) {
+          const nextMatch = nextRound.matches[Math.floor(j / 2)];
+          await supabase.from('matches').update({ next_match_id: nextMatch.id }).eq('id', currentRound.matches[j].id);
+          currentRound.matches[j].next_match_id = nextMatch.id;
+        }
+      }
+
+      // Assegna squadre al primo round
+      const firstRound = reversedRounds[0];
+      for (let i = 0; i < matchups.length; i++) {
+        await supabase.from('matches').update({ team_a_id: matchups[i].teamA.id, team_b_id: matchups[i].teamB.id }).eq('id', firstRound.matches[i].id);
+        firstRound.matches[i].team_a_id = matchups[i].teamA.id;
+        firstRound.matches[i].team_b_id = matchups[i].teamB.id;
+      }
+
+      // Costruisci stato locale
+      const allPlayoffMatches = savedRounds.flatMap((sr, srIdx) =>
+        sr.matches.map((m: any, idx: number) => ({
           id: m.id,
-          teamA: matchups[idx].teamA,
-          teamB: matchups[idx].teamB,
+          teamA: srIdx === savedRounds.length - 1 && matchups[idx] ? matchups[idx].teamA : teams.find(t => t.id === m.team_a_id) || null,
+          teamB: srIdx === savedRounds.length - 1 && matchups[idx] ? matchups[idx].teamB : teams.find(t => t.id === m.team_b_id) || null,
           scoreA: 0, scoreB: 0,
           played: false,
-          round: bracketSize,
-          positionInRound: idx
-        })));
-        setPlayoffGenerated(true);
-        setActiveTab('finale');
-      }
+          round: m.round,
+          positionInRound: idx,
+          nextMatchId: m.next_match_id
+        }))
+      );
+
+      setPlayoffMatches(allPlayoffMatches);
+      setPlayoffGenerated(true);
+      setActiveTab('finale');
     } catch (error: any) {
       alert('Errore generazione playoff: ' + error.message);
     }
@@ -219,9 +236,35 @@ export const GroupTournaments = ({ onBack, onTournamentCreated }: { onBack: () =
   const updatePlayoffScore = async (matchIdx: number, scoreA: number, scoreB: number) => {
     const match = playoffMatches[matchIdx];
     await supabase.from('matches').update({ score_a: scoreA, score_b: scoreB, status: 'finished' }).eq('id', match.id);
-    const newMatches = [...playoffMatches];
-    newMatches[matchIdx] = { ...match, scoreA, scoreB, played: true };
-    setPlayoffMatches(newMatches);
+    
+    const updatedMatches = [...playoffMatches];
+    updatedMatches[matchIdx] = { ...match, scoreA, scoreB, played: true };
+
+    // Avanza il vincitore al turno successivo
+    if (match.nextMatchId) {
+      const winnerId = scoreA > scoreB ? match.teamA?.id : scoreB > scoreA ? match.teamB?.id : null;
+      const winner = scoreA > scoreB ? match.teamA : scoreB > scoreA ? match.teamB : null;
+      
+      if (winnerId && winner) {
+        const nextMatchIndex = updatedMatches.findIndex(m => m.id === match.nextMatchId);
+        if (nextMatchIndex !== -1) {
+          const isTeamB = match.positionInRound % 2 !== 0;
+          const updatedNextMatch = {
+            ...updatedMatches[nextMatchIndex],
+            teamA: isTeamB ? updatedMatches[nextMatchIndex].teamA : winner,
+            teamB: isTeamB ? winner : updatedMatches[nextMatchIndex].teamB,
+          };
+          updatedMatches[nextMatchIndex] = updatedNextMatch;
+
+          await supabase.from('matches').update({
+            team_a_id: isTeamB ? updatedMatches[nextMatchIndex].teamA?.id : winnerId,
+            team_b_id: isTeamB ? winnerId : updatedMatches[nextMatchIndex].teamB?.id
+          }).eq('id', match.nextMatchId);
+        }
+      }
+    }
+
+    setPlayoffMatches(updatedMatches);
   };
 
   const getScorerStats = () => {
