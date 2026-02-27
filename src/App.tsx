@@ -1273,9 +1273,10 @@ if (view === 'teams') {
   title={confirmModal.title}
   message={confirmModal.message}
 />
-    </div>
-  );
-}   
+   </div>
+    );
+  }
+}
 
 // --- Sub-Components ---
 
