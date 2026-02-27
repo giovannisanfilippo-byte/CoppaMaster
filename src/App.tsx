@@ -370,94 +370,96 @@ function PrivateApp() {
         setMatches([...matches, ...finalMatches]);
 
       } else {
-        // KNOCKOUT: salva prima tutti i match senza next_match_id
-        const numTeams = currentTeams.length;
-        let bracketSize = 2;
-        while (bracketSize < numTeams) bracketSize *= 2;
+  const numTeams = currentTeams.length;
+  let bracketSize = 2;
+  while (bracketSize < numTeams) bracketSize *= 2;
 
-        // Crea struttura dei round dal più piccolo al più grande
-        const rounds: { round: number, count: number }[] = [];
-        let r = 2;
-        while (r <= bracketSize) {
-          rounds.push({ round: r, count: r / 2 });
-          r *= 2;
-        }
+  // Crea round in ordine crescente: [finale(2), semifinali(4), quarti(8)...]
+  const rounds: { round: number, count: number }[] = [];
+  let r = 2;
+  while (r <= bracketSize) {
+    rounds.push({ round: r, count: r / 2 });
+    r *= 2;
+  }
 
-        // Salva round per round partendo dalla finale
-        const savedRounds: { round: number, matches: any[] }[] = [];
-        
-        for (const roundInfo of rounds) {
-          const matchesToSave = Array.from({ length: roundInfo.count }, (_, i) => ({
-            tournament_id: activeTournamentId,
-            team_a_id: null,
-            team_b_id: null,
-            score_a: 0,
-            score_b: 0,
-            round: roundInfo.round,
-            match_type: 'bracket_match',
-            is_return_match: false,
-            status: 'scheduled',
-            next_match_id: null,
-            position_in_round: i,
-            user_id: user.id
-          }));
-          const saved = await saveMatches(matchesToSave);
-          savedRounds.push({ round: roundInfo.round, matches: saved });
-        }
+  // Salva tutti i round
+  const savedRounds: { round: number, matches: any[] }[] = [];
+  for (const roundInfo of rounds) {
+    const matchesToSave = Array.from({ length: roundInfo.count }, (_, i) => ({
+      tournament_id: activeTournamentId,
+      team_a_id: null,
+      team_b_id: null,
+      score_a: 0,
+      score_b: 0,
+      round: roundInfo.round,
+      match_type: 'bracket_match',
+      is_return_match: false,
+      status: 'scheduled',
+      next_match_id: null,
+      position_in_round: i,
+      user_id: user.id
+    }));
+    const saved = await saveMatches(matchesToSave);
+    savedRounds.push({ round: roundInfo.round, matches: saved });
+  }
 
-        // Aggiorna next_match_id collegando ogni round al successivo
-        for (let i = 0; i < savedRounds.length - 1; i++) {
-          const currentRound = savedRounds[i];
-          const nextRound = savedRounds[i + 1];
-          
-          for (let j = 0; j < currentRound.matches.length; j++) {
-            const nextMatchIndex = Math.floor(j / 2);
-            const nextMatch = nextRound.matches[nextMatchIndex];
-            await supabase.from('matches')
-              .update({ next_match_id: nextMatch.id })
-              .eq('id', currentRound.matches[j].id);
-            currentRound.matches[j].next_match_id = nextMatch.id;
-          }
-        }
+  // savedRounds = [finale, semifinali, quarti...]
+  // Invertiamo per collegare dai round più grandi ai più piccoli
+  // quarti → semifinali → finale
+  const reversedRounds = [...savedRounds].reverse();
 
-        // Assegna squadre al primo round (quello con bracketSize)
-        const firstRound = savedRounds[savedRounds.length - 1];
-        const shuffledTeams = [...currentTeams].sort(() => Math.random() - 0.5);
-        
-        for (let i = 0; i < shuffledTeams.length; i++) {
-          const matchIndex = Math.floor(i / 2);
-          const isTeamB = i % 2 !== 0;
-          const matchId = firstRound.matches[matchIndex].id;
-          
-          if (isTeamB) {
-            await supabase.from('matches').update({ team_b_id: shuffledTeams[i].id }).eq('id', matchId);
-            firstRound.matches[matchIndex].team_b_id = shuffledTeams[i].id;
-          } else {
-            await supabase.from('matches').update({ team_a_id: shuffledTeams[i].id }).eq('id', matchId);
-            firstRound.matches[matchIndex].team_a_id = shuffledTeams[i].id;
-          }
-        }
+  for (let i = 0; i < reversedRounds.length - 1; i++) {
+    const currentRound = reversedRounds[i];   // es. semifinali
+    const nextRound = reversedRounds[i + 1];  // es. finale
 
-        // Costruisci array finale di match
-        const allMatches: Match[] = savedRounds.flatMap(sr => 
-          sr.matches.map((m: any) => ({
-            id: m.id,
-            tournamentId: m.tournament_id || activeTournamentId,
-            teamAId: m.team_a_id,
-            teamBId: m.team_b_id,
-            scoreA: m.score_a || 0,
-            scoreB: m.score_b || 0,
-            status: m.status || 'scheduled',
-            round: m.round,
-            matchType: 'bracket_match' as const,
-            isReturnMatch: false,
-            nextMatchId: m.next_match_id,
-            positionInRound: m.position_in_round
-          }))
-        );
+    for (let j = 0; j < currentRound.matches.length; j++) {
+      const nextMatchIndex = Math.floor(j / 2);
+      const nextMatch = nextRound.matches[nextMatchIndex];
+      await supabase.from('matches')
+        .update({ next_match_id: nextMatch.id })
+        .eq('id', currentRound.matches[j].id);
+      currentRound.matches[j].next_match_id = nextMatch.id;
+    }
+  }
 
-        setMatches([...matches, ...allMatches]);
-      }
+  // Assegna squadre al primo round (il più grande = reversedRounds[0])
+  const firstRound = reversedRounds[0];
+  const shuffledTeams = [...currentTeams].sort(() => Math.random() - 0.5);
+
+  for (let i = 0; i < shuffledTeams.length; i++) {
+    const matchIndex = Math.floor(i / 2);
+    const isTeamB = i % 2 !== 0;
+    const matchId = firstRound.matches[matchIndex].id;
+
+    if (isTeamB) {
+      await supabase.from('matches').update({ team_b_id: shuffledTeams[i].id }).eq('id', matchId);
+      firstRound.matches[matchIndex].team_b_id = shuffledTeams[i].id;
+    } else {
+      await supabase.from('matches').update({ team_a_id: shuffledTeams[i].id }).eq('id', matchId);
+      firstRound.matches[matchIndex].team_a_id = shuffledTeams[i].id;
+    }
+  }
+
+  // Costruisci array finale di match
+  const allMatches: Match[] = savedRounds.flatMap(sr =>
+    sr.matches.map((m: any) => ({
+      id: m.id,
+      tournamentId: activeTournamentId!,
+      teamAId: m.team_a_id,
+      teamBId: m.team_b_id,
+      scoreA: m.score_a || 0,
+      scoreB: m.score_b || 0,
+      status: m.status || 'scheduled',
+      round: m.round,
+      matchType: 'bracket_match' as const,
+      isReturnMatch: false,
+      nextMatchId: m.next_match_id,
+      positionInRound: m.position_in_round
+    }))
+  );
+
+  setMatches([...matches, ...allMatches]);
+}
 
       setView('roster');
     } catch (error: any) {
