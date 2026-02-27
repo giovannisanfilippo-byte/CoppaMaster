@@ -643,6 +643,8 @@ function PrivateApp() {
   };
 
   const updateMatchScore = async (matchId: string, scoreA: number, scoreB: number) => {
+    console.log("DEBUG updateMatchScore chiamata - matchId:", matchId, "scoreA:", scoreA, "scoreB:", scoreB);
+    console.log("DEBUG tournament type:", tournament?.type);
     try {
       await updateMatchScoreDB(matchId, scoreA, scoreB);
       
@@ -653,15 +655,14 @@ function PrivateApp() {
         return m;
       });
 
-      // Handle Knockout Progression
       if (tournament?.type === 'knockout') {
         const match = updatedMatches.find(m => m.id === matchId);
-        console.log("DEBUG knockout - match:", match);
+        console.log("DEBUG knockout - match trovato:", match);
         console.log("DEBUG knockout - nextMatchId:", match?.nextMatchId);
-        console.log("DEBUG knockout - winnerId:", scoreA > scoreB ? match?.teamAId : match?.teamBId);
         
         if (match && match.nextMatchId) {
           const winnerId = scoreA > scoreB ? match.teamAId : scoreB > scoreA ? match.teamBId : null;
+          console.log("DEBUG knockout - winnerId:", winnerId);
           if (winnerId) {
             const nextMatchIndex = updatedMatches.findIndex(m => m.id === match.nextMatchId);
             if (nextMatchIndex !== -1) {
