@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from "../utils/supabase";
 import { Trophy, ArrowLeft, Users, X, Award } from 'lucide-react';
 
-export const GroupTournaments = ({ onBack, onTournamentCreated }: { onBack: () => void, onTournamentCreated?: () => void }) => {
+export const GroupTournaments = ({ onBack, onTournamentCreated, existingTournamentId }: { onBack: () => void, onTournamentCreated?: () => void, existingTournamentId?: string }) => {
   const [teams, setTeams] = useState<any[]>([]);
   const [players, setPlayers] = useState<any[]>([]);
   const [selectedTeams, setSelectedTeams] = useState<any[]>([]);
@@ -28,6 +28,60 @@ export const GroupTournaments = ({ onBack, onTournamentCreated }: { onBack: () =
     };
     loadData();
   }, []);
+
+  useEffect(() => {
+    if (existingTournamentId) {
+      loadExistingTournament(existingTournamentId);
+    }
+  }, [existingTournamentId]);
+
+  const loadExistingTournament = async (tId: string) => {
+    try {
+      setTournamentId(tId);
+      const { data: matchesData } = await supabase.from('matches').select('*').eq('tournament_id', tId);
+      if (!matchesData) return;
+      const gironeMatches = matchesData.filter(m => m.match_type?.startsWith('girone_'));
+      const playoffMatchesData = matchesData.filter(m => m.match_type === 'playoff');
+      const groupNames = [...new Set(gironeMatches.map(m => m.match_type.replace('girone_', '')))].sort();
+      const allTeamIds = [...new Set([
+        ...gironeMatches.map(m => m.team_a_id),
+        ...gironeMatches.map(m => m.team_b_id),
+        ...playoffMatchesData.map(m => m.team_a_id),
+        ...playoffMatchesData.map(m => m.team_b_id)
+      ].filter(Boolean))];
+      const { data: teamsData } = await supabase.from('teams').select('*').in('id', allTeamIds);
+      const teamsMap: Record<string, any> = {};
+      teamsData?.forEach(t => { teamsMap[t.id] = t; });
+      if (teamsData) setTeams(prev => {
+        const existingIds = new Set(prev.map(t => t.id));
+        return [...prev, ...teamsData.filter(t => !existingIds.has(t.id))];
+      });
+      const reconstructedGroups = groupNames.map(groupName => {
+        const gMatches = gironeMatches.filter(m => m.match_type === `girone_${groupName}`);
+        const groupTeamIds = [...new Set([...gMatches.map(m => m.team_a_id), ...gMatches.map(m => m.team_b_id)].filter(Boolean))];
+        const groupTeams = groupTeamIds.map(id => teamsMap[id]).filter(Boolean);
+        const matches = gMatches.map(m => ({
+          id: m.id, teamA: teamsMap[m.team_a_id], teamB: teamsMap[m.team_b_id],
+          scoreA: m.score_a, scoreB: m.score_b, played: m.status === 'finished', isReturn: m.is_return_match
+        }));
+        return { name: groupName, teams: groupTeams, matches };
+      });
+      setGroups(reconstructedGroups);
+      if (playoffMatchesData.length > 0) {
+        const loadedPlayoffMatches = playoffMatchesData
+          .sort((a, b) => b.round - a.round || a.position_in_round - b.position_in_round)
+          .map(m => ({
+            id: m.id, teamA: teamsMap[m.team_a_id] || null, teamB: teamsMap[m.team_b_id] || null,
+            scoreA: m.score_a, scoreB: m.score_b, played: m.status === 'finished',
+            round: m.round, positionInRound: m.position_in_round, nextMatchId: m.next_match_id
+          }));
+        setPlayoffMatches(loadedPlayoffMatches);
+        setPlayoffGenerated(true);
+      }
+    } catch (error: any) {
+      console.error('Errore caricamento torneo esistente:', error);
+    }
+  };
 
   const createGroups = async () => {
     if (selectedTeams.length < 3 || !user) return;
