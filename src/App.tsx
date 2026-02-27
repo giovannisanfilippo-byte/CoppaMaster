@@ -656,6 +656,10 @@ function PrivateApp() {
       // Handle Knockout Progression
       if (tournament?.type === 'knockout') {
         const match = updatedMatches.find(m => m.id === matchId);
+        console.log("DEBUG knockout - match:", match);
+        console.log("DEBUG knockout - nextMatchId:", match?.nextMatchId);
+        console.log("DEBUG knockout - winnerId:", scoreA > scoreB ? match?.teamAId : match?.teamBId);
+        
         if (match && match.nextMatchId) {
           const winnerId = scoreA > scoreB ? match.teamAId : scoreB > scoreA ? match.teamBId : null;
           if (winnerId) {
@@ -665,7 +669,6 @@ function PrivateApp() {
               if (isTeamB) updatedMatches[nextMatchIndex].teamBId = winnerId;
               else updatedMatches[nextMatchIndex].teamAId = winnerId;
               
-              // Update next match in DB too
               await supabase.from('matches').update({
                 team_a_id: updatedMatches[nextMatchIndex].teamAId,
                 team_b_id: updatedMatches[nextMatchIndex].teamBId
