@@ -1,6 +1,11 @@
 @import "tailwindcss";
+
 body {
   position: relative;
+  background-image: url('https://images.unsplash.com/photo-1551958219-acbc595a1b93?w=1920&q=80');
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
 }
 
 body::before {
