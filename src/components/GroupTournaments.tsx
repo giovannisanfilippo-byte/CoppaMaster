@@ -478,36 +478,80 @@ export const GroupTournaments = ({ onBack, onTournamentCreated, existingTourname
             ))}
 
             {activeTab === 'finale' && (
-              <div className="space-y-6">
-                {!playoffGenerated ? (
-                  <div className="bg-white rounded-3xl border border-slate-200 p-8 text-center">
-                    <p className="text-slate-400 italic">Completa tutte le partite dei gironi per generare la fase finale.</p>
-                  </div>
-                ) : (
-                  <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
-                    <div className="bg-indigo-600 px-6 py-4"><h2 className="text-white font-black text-lg">🏅 Fase Finale</h2></div>
-                    <div className="p-6 space-y-3">
-                      {playoffMatches.map((match: any, idx: number) => (
-                        <div key={idx} className="flex items-center gap-3 p-3 bg-slate-50 rounded-2xl">
-                          <div className="flex-1 text-right">
-                            <div className="font-black text-slate-800">{match.teamA?.name}</div>
-                            <div className="text-[10px] text-slate-400 font-bold">Girone {match.teamA?.groupName} - {match.teamA?.position === 1 ? '1°' : match.teamA?.position === 2 ? '2°' : '3°'}</div>
+  <div className="space-y-6">
+    {!playoffGenerated ? (
+      <div className="bg-white rounded-3xl border border-slate-200 p-8 text-center">
+        <p className="text-slate-400 italic">Completa tutte le partite dei gironi per generare la fase finale.</p>
+      </div>
+    ) : (
+      <div className="overflow-x-auto pb-8">
+        <div className="flex gap-12 min-w-max p-4">
+          {(() => {
+            const rounds = [...new Set(playoffMatches.map(m => m.round))].sort((a, b) => b - a);
+            return rounds.map(roundSize => {
+              const roundMatches = playoffMatches
+                .filter(m => m.round === roundSize)
+                .sort((a, b) => a.positionInRound - b.positionInRound);
+              const roundLabel =
+                roundSize === 2 ? 'Finale' :
+                roundSize === 4 ? 'Semifinali' :
+                roundSize === 8 ? 'Quarti' :
+                roundSize === 16 ? 'Ottavi' : `Turno ${roundSize}`;
+              return (
+                <div key={roundSize} className="flex flex-col">
+                  <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400 text-center mb-6">{roundLabel}</h3>
+                  <div className="flex flex-col justify-around flex-1 gap-8">
+                    {roundMatches.map((match, idx) => {
+                      const matchIdx = playoffMatches.findIndex(m => m.id === match.id);
+                      return (
+                        <div key={match.id} className="bg-white rounded-2xl shadow-sm border border-slate-200 w-64 overflow-hidden hover:border-indigo-300 transition-all">
+                          {/* Team A */}
+                          <div className={`flex items-center justify-between px-4 py-3 ${match.played && match.scoreA > match.scoreB ? 'bg-indigo-50' : ''}`}>
+                            <span className={`text-sm font-bold truncate flex-1 ${match.played && match.scoreA > match.scoreB ? 'text-indigo-600' : 'text-slate-700'}`}>
+                              {match.teamA?.name || '---'}
+                            </span>
+                            <input
+                              type="number" min="0"
+                              className="w-10 h-8 text-center text-sm font-black bg-white rounded-lg border border-slate-200 outline-none ml-2"
+                              value={match.scoreA}
+                              onChange={e => updatePlayoffScore(matchIdx, parseInt(e.target.value) || 0, match.scoreB)}
+                            />
                           </div>
-                          <input type="number" min="0" className="w-12 h-12 text-center text-xl font-black bg-white rounded-xl border border-slate-200 outline-none" value={match.scoreA} onChange={e => updatePlayoffScore(idx, parseInt(e.target.value) || 0, match.scoreB)} />
-                          <span className="text-[10px] font-black text-slate-300">VS</span>
-                          <input type="number" min="0" className="w-12 h-12 text-center text-xl font-black bg-white rounded-xl border border-slate-200 outline-none" value={match.scoreB} onChange={e => updatePlayoffScore(idx, match.scoreA, parseInt(e.target.value) || 0)} />
-                          <div className="flex-1">
-                            <div className="font-black text-slate-800">{match.teamB?.name}</div>
-                            <div className="text-[10px] text-slate-400 font-bold">Girone {match.teamB?.groupName} - {match.teamB?.position === 1 ? '1°' : match.teamB?.position === 2 ? '2°' : '3°'}</div>
+                          <div className="h-px bg-slate-100" />
+                          {/* Team B */}
+                          <div className={`flex items-center justify-between px-4 py-3 ${match.played && match.scoreB > match.scoreA ? 'bg-indigo-50' : ''}`}>
+                            <span className={`text-sm font-bold truncate flex-1 ${match.played && match.scoreB > match.scoreA ? 'text-indigo-600' : 'text-slate-700'}`}>
+                              {match.teamB?.name || '---'}
+                            </span>
+                            <input
+                              type="number" min="0"
+                              className="w-10 h-8 text-center text-sm font-black bg-white rounded-lg border border-slate-200 outline-none ml-2"
+                              value={match.scoreB}
+                              onChange={e => updatePlayoffScore(matchIdx, match.scoreA, parseInt(e.target.value) || 0)}
+                            />
                           </div>
-                          <button onClick={() => openMatchReport(match)} className="text-[10px] font-black uppercase text-indigo-600 bg-indigo-50 px-2 py-1 rounded-full hover:bg-indigo-100 whitespace-nowrap">Referto</button>
+                          {/* Referto */}
+                          <div className="px-4 py-2 bg-slate-50 border-t border-slate-100 flex justify-center">
+                            <button
+                              onClick={() => openMatchReport(match)}
+                              className="text-[10px] font-black uppercase tracking-widest text-indigo-600 hover:text-indigo-800 transition-colors"
+                            >
+                              Referto Marcatori
+                            </button>
+                          </div>
                         </div>
-                      ))}
-                    </div>
+                      );
+                    })}
                   </div>
-                )}
-              </div>
-            )}
+                </div>
+              );
+            });
+          })()}
+        </div>
+      </div>
+    )}
+  </div>
+)}
 
             {activeTab === 'marcatori' && (
               <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
