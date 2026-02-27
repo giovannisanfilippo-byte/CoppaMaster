@@ -429,7 +429,7 @@ function PrivateApp() {
   };
 
   setMatches([...matches, ...allMatches]);
-}
+      }
 
       setView('roster');
     } catch (error: any) {
