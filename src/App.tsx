@@ -1275,6 +1275,7 @@ if (view === 'teams') {
     </div>
   );
 }
+};    
 
 // --- Sub-Components ---
 
