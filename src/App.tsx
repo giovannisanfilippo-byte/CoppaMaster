@@ -1197,7 +1197,6 @@ if (view === 'teams') {
     </div>
   )}
 </motion.div>
-          )}
 
           {activeTab === 'standings' && tournament?.type === 'league' && (
             <StandingsTable standings={standings} />
