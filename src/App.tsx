@@ -1116,7 +1116,8 @@ if (view === 'teams') {
 
       <main className="max-w-4xl mx-auto p-4 mt-4">
         <AnimatePresence mode="wait">
-          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-6">
+          {activeTab === 'matches' && (
+<motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-6">
   {/* Dropdown selezione giornata */}
   <div className="flex items-center gap-4">
     <label className="text-sm font-black uppercase tracking-widest text-slate-400">Giornata:</label>
@@ -1197,6 +1198,7 @@ if (view === 'teams') {
     </div>
   )}
 </motion.div>
+)}
 
           {activeTab === 'standings' && tournament?.type === 'league' && (
             <StandingsTable standings={standings} />
