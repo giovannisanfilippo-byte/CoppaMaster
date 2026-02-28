@@ -310,7 +310,7 @@ function PrivateApp() {
     setTournamentTeams(tournamentTeams.filter(tt => !(tt.tournamentId === activeTournamentId && tt.teamId === teamId)));
   };
 
-  const generateCalendar = async (teamsToUse?: Team[]) => {
+  const generateCalendar = async (teamsToUse?: Team[], manualMatchups?: {teamA: Team, teamB: Team}[]) => {
     if (!tournament || activeTournamentId === null) return;
     const currentTeams = teamsToUse || currentTournamentTeams;
     if (currentTeams.length < 2) return;
@@ -397,20 +397,31 @@ function PrivateApp() {
         }
 
         const firstRound = reversedRounds[0];
-        const shuffledTeams = [...currentTeams].sort(() => Math.random() - 0.5);
 
-        for (let i = 0; i < shuffledTeams.length; i++) {
-          const matchIndex = Math.floor(i / 2);
-          const isTeamB = i % 2 !== 0;
-          const matchId = firstRound.matches[matchIndex].id;
-          if (isTeamB) {
-            await supabase.from('matches').update({ team_b_id: shuffledTeams[i].id }).eq('id', matchId);
-            firstRound.matches[matchIndex].team_b_id = shuffledTeams[i].id;
-          } else {
-            await supabase.from('matches').update({ team_a_id: shuffledTeams[i].id }).eq('id', matchId);
-            firstRound.matches[matchIndex].team_a_id = shuffledTeams[i].id;
-          }
-        }
+if (manualMatchups && manualMatchups.length > 0) {
+  // Assegnazione manuale
+  for (let i = 0; i < manualMatchups.length; i++) {
+    const matchId = firstRound.matches[i].id;
+    await supabase.from('matches').update({ team_a_id: manualMatchups[i].teamA.id, team_b_id: manualMatchups[i].teamB.id }).eq('id', matchId);
+    firstRound.matches[i].team_a_id = manualMatchups[i].teamA.id;
+    firstRound.matches[i].team_b_id = manualMatchups[i].teamB.id;
+  }
+} else {
+  // Sorteggio automatico
+  const shuffledTeams = [...currentTeams].sort(() => Math.random() - 0.5);
+  for (let i = 0; i < shuffledTeams.length; i++) {
+    const matchIndex = Math.floor(i / 2);
+    const isTeamB = i % 2 !== 0;
+    const matchId = firstRound.matches[matchIndex].id;
+    if (isTeamB) {
+      await supabase.from('matches').update({ team_b_id: shuffledTeams[i].id }).eq('id', matchId);
+      firstRound.matches[matchIndex].team_b_id = shuffledTeams[i].id;
+    } else {
+      await supabase.from('matches').update({ team_a_id: shuffledTeams[i].id }).eq('id', matchId);
+      firstRound.matches[matchIndex].team_a_id = shuffledTeams[i].id;
+    }
+  }
+}
 
         await loadTournamentDetails(activeTournamentId!);
       }
@@ -789,7 +800,7 @@ function PrivateApp() {
         onAddExistingTeam={(id: string) => addTeamToTournament(id)}
         onCreateAndAddTeam={(teamData: any) => createAndAddTeam(teamData)}
         onRemoveTeam={(id: string) => removeTeamFromTournament(id)}
-        onGenerate={(teams: any) => generateCalendar(teams)}
+        onGenerate={(teams: any, matchups: any) => generateCalendar(teams, matchups)}
         onRefreshTeams={() => loadUserData()}
       />
     );
@@ -1308,6 +1319,9 @@ function TeamRegistrationView({ tournament, teams: initialTeams, currentTourname
   const [name, setName] = useState('');
   const [localTeams, setLocalTeams] = useState(initialTeams || []);
   const [selectedTeams, setSelectedTeams] = useState<any[]>([]);
+  const [drawMode, setDrawMode] = useState<'auto' | 'manual'>('auto');
+  const [matchups, setMatchups] = useState<{teamA: any, teamB: any}[]>([]);
+  const [showDraw, setShowDraw] = useState(false);
 
   useEffect(() => {
     const loadTeams = async () => {
@@ -1335,9 +1349,111 @@ function TeamRegistrationView({ tournament, teams: initialTeams, currentTourname
   const handleRemoveTeam = (teamId: string) => {
     setSelectedTeams(selectedTeams.filter((t: any) => t.id !== teamId));
     onRemoveTeam(teamId);
+    setShowDraw(false);
+    setMatchups([]);
   };
 
   const canGenerate = selectedTeams.length >= 2 && selectedTeams.length === tournament.maxTeams;
+  const isKnockout = tournament.type === 'knockout';
+
+  // Calcola bracketSize per sapere quante partite al primo turno
+  let bracketSize = 2;
+  while (bracketSize < selectedTeams.length) bracketSize *= 2;
+  const firstRoundMatchCount = bracketSize / 2;
+
+  const handleProceed = () => {
+    if (isKnockout && drawMode === 'manual') {
+      // Inizializza matchup vuoti
+      setMatchups(Array.from({ length: firstRoundMatchCount }, () => ({ teamA: null, teamB: null })));
+      setShowDraw(true);
+    } else {
+      onGenerate(selectedTeams, undefined);
+    }
+  };
+
+  const assignTeamToSlot = (matchIdx: number, slot: 'teamA' | 'teamB', teamId: string) => {
+    const team = selectedTeams.find((t: any) => t.id === teamId);
+    const newMatchups = [...matchups];
+    // Rimuovi la squadra da qualsiasi altra posizione
+    newMatchups.forEach((m, i) => {
+      if (m.teamA?.id === teamId) newMatchups[i] = { ...newMatchups[i], teamA: null };
+      if (m.teamB?.id === teamId) newMatchups[i] = { ...newMatchups[i], teamB: null };
+    });
+    newMatchups[matchIdx] = { ...newMatchups[matchIdx], [slot]: team || null };
+    setMatchups(newMatchups);
+  };
+
+  const allMatchupsFilled = matchups.length > 0 && matchups.every(m => m.teamA && m.teamB);
+  const usedTeamIds = new Set(matchups.flatMap(m => [m.teamA?.id, m.teamB?.id].filter(Boolean)));
+
+  if (showDraw && isKnockout) {
+    return (
+      <div className="min-h-screen p-6">
+        <div className="max-w-2xl mx-auto space-y-8">
+          <div className="flex items-center gap-4">
+            <button onClick={() => setShowDraw(false)} className="p-2 bg-white rounded-xl border border-slate-200 text-slate-400 hover:text-slate-600">
+              <X className="w-5 h-5" />
+            </button>
+            <div className="space-y-1">
+              <h1 className="text-2xl font-black text-slate-900 tracking-tight">Sorteggio Manuale</h1>
+              <p className="text-slate-400 text-sm">Assegna le squadre per ogni sfida del primo turno.</p>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            {matchups.map((matchup, idx) => (
+              <div key={idx} className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
+                <div className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-4 text-center">Sfida {idx + 1}</div>
+                <div className="flex items-center gap-4">
+                  <div className="flex-1">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 block">Squadra A</label>
+                    <select
+                      className="w-full p-3 bg-slate-50 rounded-2xl border border-slate-200 outline-none font-bold text-sm"
+                      value={matchup.teamA?.id || ''}
+                      onChange={e => assignTeamToSlot(idx, 'teamA', e.target.value)}
+                    >
+                      <option value="">Scegli...</option>
+                      {selectedTeams
+                        .filter((t: any) => !usedTeamIds.has(t.id) || matchup.teamA?.id === t.id)
+                        .map((t: any) => <option key={t.id} value={t.id}>{t.name}</option>)}
+                    </select>
+                  </div>
+                  <div className="text-slate-300 font-black text-sm pt-6">VS</div>
+                  <div className="flex-1">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 block">Squadra B</label>
+                    <select
+                      className="w-full p-3 bg-slate-50 rounded-2xl border border-slate-200 outline-none font-bold text-sm"
+                      value={matchup.teamB?.id || ''}
+                      onChange={e => assignTeamToSlot(idx, 'teamB', e.target.value)}
+                    >
+                      <option value="">Scegli...</option>
+                      {selectedTeams
+                        .filter((t: any) => !usedTeamIds.has(t.id) || matchup.teamB?.id === t.id)
+                        .map((t: any) => <option key={t.id} value={t.id}>{t.name}</option>)}
+                    </select>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {selectedTeams.length > bracketSize && (
+            <div className="bg-amber-50 border border-amber-100 rounded-2xl p-4 text-amber-700 text-xs font-bold">
+              ⚠️ Hai {selectedTeams.length} squadre per un bracket da {bracketSize}. Le squadre non assegnate riceveranno un bye automatico.
+            </div>
+          )}
+
+          <button
+            disabled={!allMatchupsFilled}
+            onClick={() => onGenerate(selectedTeams, matchups)}
+            className="w-full bg-indigo-600 text-white font-black py-5 rounded-2xl shadow-2xl shadow-indigo-500/30 hover:bg-indigo-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
+          >
+            Genera Tabellone <ChevronRight className="w-5 h-5" />
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen p-6">
@@ -1356,7 +1472,7 @@ function TeamRegistrationView({ tournament, teams: initialTeams, currentTourname
           <div className="space-y-3">
             <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Seleziona Club dall'Anagrafica</label>
             <div className="relative">
-              <select 
+              <select
                 className="w-full p-5 bg-slate-50 rounded-2xl border border-slate-200 outline-none focus:ring-2 focus:ring-indigo-500 font-bold appearance-none cursor-pointer"
                 onChange={(e) => { if (e.target.value) { handleAddTeam(e.target.value); e.target.value = ''; } }}
                 disabled={selectedTeams.length >= tournament.maxTeams}
@@ -1372,11 +1488,6 @@ function TeamRegistrationView({ tournament, teams: initialTeams, currentTourname
                 <ChevronRight className="w-5 h-5 text-slate-300 rotate-90" />
               </div>
             </div>
-            {localTeams.length === 0 && (
-              <p className="text-[10px] font-bold text-amber-600 bg-amber-50 p-3 rounded-xl border border-amber-100">
-                L'anagrafica è vuota. Crea i club nella sezione "Anagrafica Club".
-              </p>
-            )}
           </div>
 
           <div className="relative">
@@ -1411,8 +1522,33 @@ function TeamRegistrationView({ tournament, teams: initialTeams, currentTourname
             </div>
           </div>
 
-          <button disabled={!canGenerate} onClick={() => onGenerate(selectedTeams)} className="w-full bg-indigo-600 text-white font-black py-5 rounded-2xl shadow-2xl shadow-indigo-500/30 hover:bg-indigo-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3">
-            Genera Calendario <ChevronRight className="w-5 h-5" />
+          {/* Modalità sorteggio - solo per knockout */}
+          {isKnockout && canGenerate && (
+            <div className="space-y-3">
+              <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Modalità Sorteggio</label>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  onClick={() => setDrawMode('auto')}
+                  className={`p-4 rounded-2xl border-2 font-black text-sm transition-all ${drawMode === 'auto' ? 'border-indigo-600 bg-indigo-50 text-indigo-600' : 'border-slate-200 text-slate-400 hover:border-slate-300'}`}
+                >
+                  🎲 Automatico
+                </button>
+                <button
+                  onClick={() => setDrawMode('manual')}
+                  className={`p-4 rounded-2xl border-2 font-black text-sm transition-all ${drawMode === 'manual' ? 'border-indigo-600 bg-indigo-50 text-indigo-600' : 'border-slate-200 text-slate-400 hover:border-slate-300'}`}
+                >
+                  ✋ Manuale
+                </button>
+              </div>
+            </div>
+          )}
+
+          <button
+            disabled={!canGenerate}
+            onClick={handleProceed}
+            className="w-full bg-indigo-600 text-white font-black py-5 rounded-2xl shadow-2xl shadow-indigo-500/30 hover:bg-indigo-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
+          >
+            {isKnockout && drawMode === 'manual' ? 'Procedi al Sorteggio' : 'Genera Calendario'} <ChevronRight className="w-5 h-5" />
           </button>
         </div>
       </div>
