@@ -140,6 +140,28 @@ export const GroupTournaments = ({ onBack, onTournamentCreated, existingTourname
     if (data) setMatchEvents(data.map((e: any) => ({ id: e.id, matchId: e.match_id, playerId: e.player_id, type: e.event_type })));
   };
 
+  const resetMatch = async (match: any) => {
+    try {
+      // Elimina tutti gli eventi dal DB
+      for (const event of matchEvents) {
+        await supabase.from('match_events').delete().eq('id', event.id);
+      }
+      // Riporta il match a scheduled con 0-0
+      await supabase.from('matches').update({ score_a: 0, score_b: 0, status: 'scheduled' }).eq('id', match.id);
+      // Aggiorna stato locale gruppi
+      const newGroups = groups.map(g => ({
+        ...g,
+        matches: g.matches.map((m: any) => m.id === match.id ? { ...m, scoreA: 0, scoreB: 0, played: false } : m)
+      }));
+      setGroups(newGroups);
+      setMatchEvents([]);
+      setAllEvents(allEvents.filter(e => !matchEvents.find(me => me.id === e.id)));
+      setSelectedMatch(null);
+    } catch (error: any) {
+      alert('Errore reset partita: ' + error.message);
+    }
+  };
+
   const addEvent = async (playerId: string, type: 'gol' | 'assist') => {
     if (!selectedMatch || !user) return;
     const player = players.find(p => p.id === playerId);
