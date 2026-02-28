@@ -157,7 +157,7 @@ const [selectedRound, setSelectedRound] = useState<number | null>(null);
         name: t.name,
         type: t.type,
         maxTeams: t.max_teams,
-        status: t.status
+        status: t.status,
         logoUrl: t.logo_url
       })));
     }
