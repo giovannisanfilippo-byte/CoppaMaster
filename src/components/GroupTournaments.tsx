@@ -454,20 +454,106 @@ export const GroupTournaments = ({ onBack, onTournamentCreated, existingTourname
                     </div>
                   </div>
                   <div>
-                    <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3">Partite</h3>
-                    <div className="space-y-2">
-                      {group.matches.map((match: any, matchIdx: number) => (
-                        <div key={matchIdx} className="flex items-center gap-2 p-2 bg-slate-50 rounded-xl">
-                          <span className="text-xs font-bold text-slate-600 flex-1 text-right truncate">{match.teamA?.name}</span>
-                          <input type="number" min="0" className="w-10 h-8 text-center text-sm font-black bg-white rounded-lg border border-slate-200 outline-none" value={match.scoreA} onChange={e => updateScore(groupIdx, matchIdx, parseInt(e.target.value) || 0, match.scoreB)} />
-                          <span className="text-[10px] font-black text-slate-300">VS</span>
-                          <input type="number" min="0" className="w-10 h-8 text-center text-sm font-black bg-white rounded-lg border border-slate-200 outline-none" value={match.scoreB} onChange={e => updateScore(groupIdx, matchIdx, match.scoreA, parseInt(e.target.value) || 0)} />
-                          <span className="text-xs font-bold text-slate-600 flex-1 truncate">{match.teamB?.name}</span>
-                          <button onClick={() => openMatchReport(match)} className="text-[10px] font-black uppercase text-blue-600 bg-blue-50 px-2 py-1 rounded-full hover:bg-blue-100 whitespace-nowrap">Referto</button>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
+  <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3">Partite</h3>
+  <div className="space-y-4">
+    {(() => {
+      const andataMatches = group.matches.filter((m: any) => !m.isReturn);
+      const ritornoMatches = group.matches.filter((m: any) => m.isReturn);
+      const n = group.teams.length;
+      
+      // Genera calendario round-robin
+      const teamList = [...group.teams];
+      if (teamList.length % 2 !== 0) teamList.push(null);
+      const numTeams = teamList.length;
+      const giornate: any[][] = [];
+      const tl = [...teamList];
+      for (let round = 0; round < numTeams - 1; round++) {
+        const gMatches: any[] = [];
+        for (let i = 0; i < numTeams / 2; i++) {
+          if (tl[i] && tl[numTeams - 1 - i]) {
+            gMatches.push({ homeId: tl[i].id, awayId: tl[numTeams - 1 - i].id });
+          }
+        }
+        giornate.push(gMatches);
+        tl.splice(1, 0, tl.pop()!);
+      }
+
+      return (
+        <>
+          {giornate.map((giornata, gIdx) => {
+            const giornataMatches = andataMatches.filter((m: any) =>
+              giornata.some((g: any) =>
+                (g.homeId === m.teamA?.id && g.awayId === m.teamB?.id) ||
+                (g.homeId === m.teamB?.id && g.awayId === m.teamA?.id)
+              )
+            );
+            if (giornataMatches.length === 0) return null;
+            return (
+              <div key={`andata-${gIdx}`}>
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-blue-500">
+                    Giornata {gIdx + 1}
+                  </span>
+                  <div className="h-px bg-slate-100 flex-1" />
+                </div>
+                <div className="space-y-2">
+                  {giornataMatches.map((match: any) => {
+                    const matchIdx = group.matches.findIndex((m: any) => m.id === match.id);
+                    return (
+                      <div key={matchIdx} className="flex items-center gap-2 p-2 bg-slate-50 rounded-xl">
+                        <span className="text-xs font-bold text-slate-600 flex-1 text-right truncate">{match.teamA?.name}</span>
+                        <input type="number" min="0" className="w-10 h-8 text-center text-sm font-black bg-white rounded-lg border border-slate-200 outline-none" value={match.scoreA} onChange={e => updateScore(groupIdx, matchIdx, parseInt(e.target.value) || 0, match.scoreB)} />
+                        <span className="text-[10px] font-black text-slate-300">VS</span>
+                        <input type="number" min="0" className="w-10 h-8 text-center text-sm font-black bg-white rounded-lg border border-slate-200 outline-none" value={match.scoreB} onChange={e => updateScore(groupIdx, matchIdx, match.scoreA, parseInt(e.target.value) || 0)} />
+                        <span className="text-xs font-bold text-slate-600 flex-1 truncate">{match.teamB?.name}</span>
+                        <button onClick={() => openMatchReport(match)} className="text-[10px] font-black uppercase text-blue-600 bg-blue-50 px-2 py-1 rounded-full hover:bg-blue-100 whitespace-nowrap">Referto</button>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
+
+          {ritornoMatches.length > 0 && giornate.map((giornata, gIdx) => {
+            const giornataMatches = ritornoMatches.filter((m: any) =>
+              giornata.some((g: any) =>
+                (g.homeId === m.teamA?.id && g.awayId === m.teamB?.id) ||
+                (g.homeId === m.teamB?.id && g.awayId === m.teamA?.id)
+              )
+            );
+            if (giornataMatches.length === 0) return null;
+            return (
+              <div key={`ritorno-${gIdx}`}>
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-indigo-500">
+                    Giornata {giornate.length + gIdx + 1} <span className="text-slate-300">(Ritorno)</span>
+                  </span>
+                  <div className="h-px bg-slate-100 flex-1" />
+                </div>
+                <div className="space-y-2">
+                  {giornataMatches.map((match: any) => {
+                    const matchIdx = group.matches.findIndex((m: any) => m.id === match.id);
+                    return (
+                      <div key={matchIdx} className="flex items-center gap-2 p-2 bg-slate-50 rounded-xl">
+                        <span className="text-xs font-bold text-slate-600 flex-1 text-right truncate">{match.teamA?.name}</span>
+                        <input type="number" min="0" className="w-10 h-8 text-center text-sm font-black bg-white rounded-lg border border-slate-200 outline-none" value={match.scoreA} onChange={e => updateScore(groupIdx, matchIdx, parseInt(e.target.value) || 0, match.scoreB)} />
+                        <span className="text-[10px] font-black text-slate-300">VS</span>
+                        <input type="number" min="0" className="w-10 h-8 text-center text-sm font-black bg-white rounded-lg border border-slate-200 outline-none" value={match.scoreB} onChange={e => updateScore(groupIdx, matchIdx, match.scoreA, parseInt(e.target.value) || 0)} />
+                        <span className="text-xs font-bold text-slate-600 flex-1 truncate">{match.teamB?.name}</span>
+                        <button onClick={() => openMatchReport(match)} className="text-[10px] font-black uppercase text-blue-600 bg-blue-50 px-2 py-1 rounded-full hover:bg-blue-100 whitespace-nowrap">Referto</button>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
+        </>
+      );
+    })()}
+  </div>
+</div>
                 </div>
               </div>
             ))}
