@@ -105,21 +105,19 @@ function PrivateApp() {
   const [replaceOldTeamId, setReplaceOldTeamId] = useState('');
   const [replaceNewTeamId, setReplaceNewTeamId] = useState('');
   const [confirmModal, setConfirmModal] = useState<{
-  isOpen: boolean;
-  title: string;
-  message: string;
-  onConfirm: () => void;
-}>({ isOpen: false, title: '', message: '', onConfirm: () => {} });
-const [selectedRound, setSelectedRound] = useState<number | null>(null);
+    isOpen: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+  }>({ isOpen: false, title: '', message: '', onConfirm: () => {} });
+  const [selectedRound, setSelectedRound] = useState<number | null>(null);
 
   // --- Auth & Data Fetching ---
   useEffect(() => {
-    // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
     });
 
-    // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
     });
@@ -134,119 +132,116 @@ const [selectedRound, setSelectedRound] = useState<number | null>(null);
   }, [user]);
 
   const loadUserData = async () => {
-  if (!user) return;
-  try {
-    const [clubsDataResponse, tournamentsData, playersDataResponse] = await Promise.all([
-      supabase.from('teams').select('*'),
-      fetchTournaments(user.id),
-      supabase.from('players').select('*')
-    ]);
+    if (!user) return;
+    try {
+      const [clubsDataResponse, tournamentsData, playersDataResponse] = await Promise.all([
+        supabase.from('teams').select('*'),
+        fetchTournaments(user.id),
+        supabase.from('players').select('*')
+      ]);
 
-    if (clubsDataResponse.data) {
-      setTeams(clubsDataResponse.data.map((t: any) => ({
-        id: t.id,
-        name: t.name || t.nome || t.club_name || "Squadra senza nome",
-        logoUrl: t.logo_url || "",
-        colors: t.colors || []
-      })));
+      if (clubsDataResponse.data) {
+        setTeams(clubsDataResponse.data.map((t: any) => ({
+          id: t.id,
+          name: t.name || t.nome || t.club_name || "Squadra senza nome",
+          logoUrl: t.logo_url || "",
+          colors: t.colors || []
+        })));
+      }
+
+      if (tournamentsData) {
+        setTournaments(tournamentsData.map((t: any) => ({
+          id: t.id,
+          name: t.name,
+          type: t.type,
+          maxTeams: t.max_teams,
+          status: t.status,
+          logoUrl: t.logo_url
+        })));
+      }
+
+      if (playersDataResponse.data) {
+        setPlayers(playersDataResponse.data.map((p: any) => ({
+          id: p.id,
+          teamId: p.team_id,
+          name: p.name,
+          number: p.number,
+          playerExternalId: p.player_external_id
+        })));
+      }
+
+    } catch (error) {
+      console.error('Failed to load user data:', error);
     }
-
-    if (tournamentsData) {
-      setTournaments(tournamentsData.map((t: any) => ({
-        id: t.id,
-        name: t.name,
-        type: t.type,
-        maxTeams: t.max_teams,
-        status: t.status,
-        logoUrl: t.logo_url
-      })));
-    }
-
-    if (playersDataResponse.data) {
-      setPlayers(playersDataResponse.data.map((p: any) => ({
-        id: p.id,
-        teamId: p.team_id,
-        name: p.name,
-        number: p.number,
-        playerExternalId: p.player_external_id
-      })));
-    }
-
-  } catch (error) {
-    console.error('Failed to load user data:', error);
-  }
-};
+  };
   
   const loadTournamentDetails = async (tournamentId: string) => {
-  try {
-    // 1. Carica tournament_teams
-    const { data: ttData } = await supabase
-      .from('tournament_teams')
-      .select('*')
-      .eq('tournament_id', tournamentId);
+    try {
+      const { data: ttData } = await supabase
+        .from('tournament_teams')
+        .select('*')
+        .eq('tournament_id', tournamentId);
 
-    if (ttData) {
-      setTournamentTeams(prev => [
-        ...prev.filter(tt => tt.tournamentId !== tournamentId),
-        ...ttData.map((tt: any) => ({
-          tournamentId: tt.tournament_id,
-          teamId: tt.club_id
-        }))
-      ]);
-    }
+      if (ttData) {
+        setTournamentTeams(prev => [
+          ...prev.filter(tt => tt.tournamentId !== tournamentId),
+          ...ttData.map((tt: any) => ({
+            tournamentId: tt.tournament_id,
+            teamId: tt.club_id
+          }))
+        ]);
+      }
 
-    // 2. Carica matches
-    const { data: matchesData } = await supabase
-      .from('matches')
-      .select('*')
-      .eq('tournament_id', tournamentId)
-      .order('round', { ascending: true });
+      const { data: matchesData } = await supabase
+        .from('matches')
+        .select('*')
+        .eq('tournament_id', tournamentId)
+        .order('round', { ascending: true });
 
-    if (matchesData) {
-      setMatches(prev => [
-        ...prev.filter(m => m.tournamentId !== tournamentId),
-        ...matchesData.map((m: any) => ({
-          id: m.id,
-          tournamentId: m.tournament_id,
-          teamAId: m.team_a_id,
-          teamBId: m.team_b_id,
-          scoreA: m.score_a,
-          scoreB: m.score_b,
-          status: m.status,
-          round: m.round,
-          matchType: m.match_type,
-          isReturnMatch: m.is_return_match,
-          nextMatchId: m.next_match_id,
-          positionInRound: m.position_in_round
-        }))
-      ]);
+      if (matchesData) {
+        setMatches(prev => [
+          ...prev.filter(m => m.tournamentId !== tournamentId),
+          ...matchesData.map((m: any) => ({
+            id: m.id,
+            tournamentId: m.tournament_id,
+            teamAId: m.team_a_id,
+            teamBId: m.team_b_id,
+            scoreA: m.score_a,
+            scoreB: m.score_b,
+            status: m.status,
+            round: m.round,
+            matchType: m.match_type,
+            isReturnMatch: m.is_return_match,
+            nextMatchId: m.next_match_id,
+            positionInRound: m.position_in_round
+          }))
+        ]);
 
-      // 3. Carica eventi basandosi sugli ID delle partite
-      const matchIds = matchesData.map((m: any) => m.id);
-      if (matchIds.length > 0) {
-        const { data: eventsData } = await supabase
-          .from('match_events')
-          .select('*')
-          .in('match_id', matchIds);
+        const matchIds = matchesData.map((m: any) => m.id);
+        if (matchIds.length > 0) {
+          const { data: eventsData } = await supabase
+            .from('match_events')
+            .select('*')
+            .in('match_id', matchIds);
 
-        if (eventsData) {
-          setEvents(prev => [
-            ...prev.filter(e => !matchIds.includes(e.matchId)),
-            ...eventsData.map((e: any) => ({
-              id: e.id,
-              matchId: e.match_id,
-              playerId: e.player_id,
-              type: e.event_type
-            }))
-          ]);
+          if (eventsData) {
+            setEvents(prev => [
+              ...prev.filter(e => !matchIds.includes(e.matchId)),
+              ...eventsData.map((e: any) => ({
+                id: e.id,
+                matchId: e.match_id,
+                playerId: e.player_id,
+                type: e.event_type
+              }))
+            ]);
+          }
         }
       }
-    }
 
-  } catch (error) {
-    console.error('Failed to load tournament details:', error);
-  }
-};
+    } catch (error) {
+      console.error('Failed to load tournament details:', error);
+    }
+  };
 
   const tournament = useMemo(() => tournaments.find(t => t.id === activeTournamentId), [tournaments, activeTournamentId]);
   const currentTournamentTeams = useMemo(() => {
@@ -255,17 +250,17 @@ const [selectedRound, setSelectedRound] = useState<number | null>(null);
   }, [teams, tournamentTeams, activeTournamentId]);
 
   // --- Handlers: Setup ---
-  const handleCreateTournament = async (name: string, type: TournamentType, maxTeams: number) => {
+  const handleCreateTournament = async (name: string, type: TournamentType, maxTeams: number, logoUrl?: string) => {
     if (!user) return;
     try {
       const newTournamentData = {
-  name,
-  type,
-  max_teams: maxTeams,
-  status: 'attivo',
-  user_id: user.id,
-  logo_url: logoUrl || null
-};
+        name,
+        type,
+        max_teams: maxTeams,
+        status: 'attivo',
+        user_id: user.id,
+        logo_url: logoUrl || null
+      };
       
       const savedTournament = await saveTournament(newTournamentData);
       
@@ -274,7 +269,8 @@ const [selectedRound, setSelectedRound] = useState<number | null>(null);
         name: savedTournament.name, 
         type: savedTournament.type as TournamentType, 
         maxTeams: savedTournament.max_teams, 
-        status: savedTournament.status as TournamentStatus 
+        status: savedTournament.status as TournamentStatus,
+        logoUrl: savedTournament.logo_url
       };
 
       setTournaments([...tournaments, newTournament]);
@@ -288,11 +284,10 @@ const [selectedRound, setSelectedRound] = useState<number | null>(null);
   };
 
   const addTeamToTournament = (teamId: string) => {
-  console.log("DEBUG addTeamToTournament - teamId:", teamId, "activeTournamentId:", activeTournamentId);
-  if (!activeTournamentId) return;
-  if (tournamentTeams.some(tt => tt.tournamentId === activeTournamentId && tt.teamId === teamId)) return;
-  setTournamentTeams([...tournamentTeams, { tournamentId: activeTournamentId, teamId }]);
-};
+    if (!activeTournamentId) return;
+    if (tournamentTeams.some(tt => tt.tournamentId === activeTournamentId && tt.teamId === teamId)) return;
+    setTournamentTeams([...tournamentTeams, { tournamentId: activeTournamentId, teamId }]);
+  };
 
   const createAndAddTeam = async (teamData: { name: string; logoUrl?: string; colors?: string }) => {
     if (!user) return;
@@ -427,7 +422,7 @@ const [selectedRound, setSelectedRound] = useState<number | null>(null);
     }
   };
 
-    const generateLeagueCalendar = (currentTeams: Team[]): Match[] => {
+  const generateLeagueCalendar = (currentTeams: Team[]): Match[] => {
     const newMatches: Match[] = [];
     const teamIds = currentTeams.map(t => t.id);
     if (teamIds.length % 2 !== 0) teamIds.push('BYE');
@@ -442,7 +437,7 @@ const [selectedRound, setSelectedRound] = useState<number | null>(null);
           const teamB = teamIds[numTeams - 1 - i];
           if (teamA !== 'BYE' && teamB !== 'BYE') {
             newMatches.push({
-              id: '', // Temporary
+              id: '',
               tournamentId: activeTournamentId!,
               teamAId: leg === 0 ? teamA : teamB,
               teamBId: leg === 0 ? teamB : teamA,
@@ -461,157 +456,44 @@ const [selectedRound, setSelectedRound] = useState<number | null>(null);
     return newMatches;
   };
 
-  const generateKnockoutCalendar = (currentTeams: Team[]): Match[] => {
-    const generateUUID = () => {
-      return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
-        const r = Math.random() * 16 | 0;
-        const v = c === 'x' ? r : (r & 0x3 | 0x8);
-        return v.toString(16);
-      });
-    };
-
-    const numTeams = currentTeams.length;
-    let bracketSize = 2;
-    while (bracketSize < numTeams) bracketSize *= 2;
-
-    const createRound = (size: number, nextRoundMatches: Match[] | null): Match[] => {
-      const roundMatches: Match[] = [];
-      for (let i = 0; i < size / 2; i++) {
-        const match: Match = {
-          id: generateUUID(),
-          tournamentId: activeTournamentId!,
-          teamAId: null,
-          teamBId: null,
-          scoreA: 0,
-          scoreB: 0,
-          status: 'scheduled',
-          round: size,
-          matchType: 'bracket_match',
-          isReturnMatch: false,
-          nextMatchId: nextRoundMatches ? nextRoundMatches[Math.floor(i / 2)].id : undefined,
-          positionInRound: i
-        };
-        roundMatches.push(match);
-      }
-      return roundMatches;
-    };
-
-    let currentSize = 2;
-    let lastRoundMatches: Match[] | null = null;
-    const allKnockoutMatches: Match[] = [];
-
-    while (currentSize <= bracketSize) {
-      lastRoundMatches = createRound(currentSize, lastRoundMatches);
-      allKnockoutMatches.push(...lastRoundMatches);
-      currentSize *= 2;
-    }
-
-    const firstRoundMatches = allKnockoutMatches.filter(m => m.round === bracketSize);
-    const shuffledTeams = [...currentTeams].sort(() => Math.random() - 0.5);
-    
-    shuffledTeams.forEach((team, i) => {
-      const matchIndex = Math.floor(i / 2);
-      const isTeamB = i % 2 !== 0;
-      if (isTeamB) firstRoundMatches[matchIndex].teamBId = team.id;
-      else firstRoundMatches[matchIndex].teamAId = team.id;
-    });
-
-    return allKnockoutMatches;
-  };
-
   const updateTournamentStatus = (id: string, status: TournamentStatus) => {
     setTournaments(tournaments.map(t => t.id === id ? { ...t, status } : t));
   };
 
   const deleteTournament = async (id: string) => {
-    // 1. Alert di conferma nativo (più affidabile per il debug)
     if (!window.confirm("Confermi la cancellazione definitiva del torneo?")) return;
-
     try {
-      console.log("DEBUG - Tento di cancellare il torneo con ID:", id);
-      
-      const { error, count } = await supabase
-        .from('tournaments')
-        .delete()
-        .eq('id', id);
-
-      if (error) {
-        console.error("ERRORE SUPABASE:", error.message);
-        alert("Errore dal database: " + error.message);
-        return;
-      }
-
-      // 2. Controllo se il database ha effettivamente rimosso qualcosa
-      console.log("DEBUG - Cancellazione completata. Risultato:", { error, count });
-
-      // 3. Aggiorna lo stato locale immediatamente
+      const { error } = await supabase.from('tournaments').delete().eq('id', id);
+      if (error) { alert("Errore dal database: " + error.message); return; }
       setTournaments(prev => prev.filter(t => t.id !== id));
-      
       alert("Torneo eliminato correttamente dall'elenco!");
-
     } catch (err: any) {
-      console.error("ERRORE IMPREVISTO:", err);
       alert("Si è verificato un errore: " + err.message);
     }
   };
 
   const replaceTeamInTournament = async (oldTeamId: string, newTeamId: string) => {
-  if (!activeTournamentId) return;
-  try {
-    // 1. Aggiorna tournament_teams nel DB
-    await supabase
-      .from('tournament_teams')
-      .update({ club_id: newTeamId })
-      .eq('tournament_id', activeTournamentId)
-      .eq('club_id', oldTeamId);
-
-    // 2. Aggiorna le partite dove appare la vecchia squadra
-    await supabase
-      .from('matches')
-      .update({ team_a_id: newTeamId })
-      .eq('tournament_id', activeTournamentId)
-      .eq('team_a_id', oldTeamId);
-
-    await supabase
-      .from('matches')
-      .update({ team_b_id: newTeamId })
-      .eq('tournament_id', activeTournamentId)
-      .eq('team_b_id', oldTeamId);
-
-    // 3. Aggiorna lo stato locale - tournament_teams
-    setTournamentTeams(prev => prev.map(tt =>
-      tt.tournamentId === activeTournamentId && tt.teamId === oldTeamId
-        ? { ...tt, teamId: newTeamId }
-        : tt
-    ));
-
-    // 4. Aggiorna lo stato locale - matches
-    setMatches(prev => prev.map(m => {
-      if (m.tournamentId !== activeTournamentId) return m;
-      return {
-        ...m,
-        teamAId: m.teamAId === oldTeamId ? newTeamId : m.teamAId,
-        teamBId: m.teamBId === oldTeamId ? newTeamId : m.teamBId,
-      };
-    }));
-
-    alert('Squadra sostituita con successo!');
-    setIsReplaceTeamOpen(false);
-  } catch (error: any) {
-    alert('Errore: ' + error.message);
-  }
-};
+    if (!activeTournamentId) return;
+    try {
+      await supabase.from('tournament_teams').update({ club_id: newTeamId }).eq('tournament_id', activeTournamentId).eq('club_id', oldTeamId);
+      await supabase.from('matches').update({ team_a_id: newTeamId }).eq('tournament_id', activeTournamentId).eq('team_a_id', oldTeamId);
+      await supabase.from('matches').update({ team_b_id: newTeamId }).eq('tournament_id', activeTournamentId).eq('team_b_id', oldTeamId);
+      setTournamentTeams(prev => prev.map(tt => tt.tournamentId === activeTournamentId && tt.teamId === oldTeamId ? { ...tt, teamId: newTeamId } : tt));
+      setMatches(prev => prev.map(m => {
+        if (m.tournamentId !== activeTournamentId) return m;
+        return { ...m, teamAId: m.teamAId === oldTeamId ? newTeamId : m.teamAId, teamBId: m.teamBId === oldTeamId ? newTeamId : m.teamBId };
+      }));
+      alert('Squadra sostituita con successo!');
+      setIsReplaceTeamOpen(false);
+    } catch (error: any) {
+      alert('Errore: ' + error.message);
+    }
+  };
   
   // --- Handlers: Roster ---
   const addPlayer = (teamId: string, name: string, number: number, playerExternalId: string) => {
     if (!name || !playerExternalId) return;
-    const newPlayer: Player = {
-      id: Math.random().toString(36).substr(2, 9),
-      teamId,
-      name,
-      number,
-      playerExternalId
-    };
+    const newPlayer: Player = { id: Math.random().toString(36).substr(2, 9), teamId, name, number, playerExternalId };
     setPlayers([...players, newPlayer]);
   };
 
@@ -622,51 +504,32 @@ const [selectedRound, setSelectedRound] = useState<number | null>(null);
   const removePlayer = (id: string) => {
     const playerToDelete = players.find(p => p.id === id);
     const hasGoals = events.some(e => e.playerId === id && e.type === 'gol');
-    
     setConfirmModal({
       isOpen: true,
       title: 'Elimina Giocatore',
       message: hasGoals 
-        ? `Questo giocatore (${playerToDelete?.name}) ha segnato dei gol in questo torneo. Sei sicuro di volerlo eliminare? I suoi dati rimarranno nei referti storici ma non sarà più disponibile per nuovi eventi.`
+        ? `Questo giocatore (${playerToDelete?.name}) ha segnato dei gol in questo torneo. Sei sicuro di volerlo eliminare?`
         : `Sei sicuro di voler eliminare il giocatore "${playerToDelete?.name}"?`,
-      onConfirm: () => {
-        setPlayers(players.filter(p => p.id !== id));
-      }
+      onConfirm: () => { setPlayers(players.filter(p => p.id !== id)); }
     });
   };
 
   // --- Handlers: Match Report ---
   const addMatchEvent = async (matchId: string, playerId: string, type: EventType) => {
     const match = matches.find(m => m.id === matchId);
-    console.log("DEBUG addMatchEvent - match:", match);
-    console.log("DEBUG addMatchEvent - scoreA:", match?.scoreA, "scoreB:", match?.scoreB);
     if (!match) return;
-
     const player = players.find(p => p.id === playerId);
     if (!player) return;
-
     const isTeamA = player.teamId === match.teamAId;
     const currentGoals = events.filter(e => e.matchId === matchId && e.type === 'gol' && players.find(p => p.id === e.playerId)?.teamId === player.teamId).length;
     const scoreLimit = isTeamA ? match.scoreA : match.scoreB;
-
     if (type === 'gol' && currentGoals >= scoreLimit) {
       alert(`Attenzione: Hai già assegnato tutti i ${scoreLimit} gol per questa squadra.`);
       return;
     }
-
     try {
-      const savedEvent = await saveMatchEventDB({
-  match_id: matchId,
-  player_id: playerId,
-  event_type: type
-});
-
-      const newEvent: MatchEvent = {
-        id: savedEvent.id,
-        matchId: savedEvent.match_id,
-        playerId: savedEvent.player_id,
-        type: savedEvent.event_type as EventType
-      };
+      const savedEvent = await saveMatchEventDB({ match_id: matchId, player_id: playerId, event_type: type });
+      const newEvent: MatchEvent = { id: savedEvent.id, matchId: savedEvent.match_id, playerId: savedEvent.player_id, type: savedEvent.event_type as EventType };
       setEvents([...events, newEvent]);
     } catch (error) {
       console.error('Error adding match event:', error);
@@ -684,14 +547,11 @@ const [selectedRound, setSelectedRound] = useState<number | null>(null);
 
   const resetMatch = async (matchId: string) => {
     try {
-      // Elimina tutti gli eventi della partita dal DB
       const matchEvents = events.filter(e => e.matchId === matchId);
       for (const event of matchEvents) {
         await supabase.from('match_events').delete().eq('id', event.id);
       }
-      // Riporta il match a scheduled con 0-0
       await supabase.from('matches').update({ score_a: 0, score_b: 0, status: 'scheduled' }).eq('id', matchId);
-      // Aggiorna stato locale
       setEvents(events.filter(e => e.matchId !== matchId));
       setMatches(matches.map(m => m.id === matchId ? { ...m, scoreA: 0, scoreB: 0, status: 'scheduled' } : m));
     } catch (error) {
@@ -704,39 +564,25 @@ const [selectedRound, setSelectedRound] = useState<number | null>(null);
       await updateMatchScoreDB(matchId, scoreA, scoreB);
       
       const updatedMatches = matches.map(m => {
-        if (m.id === matchId) {
-          return { ...m, scoreA, scoreB, status: 'finished' as const };
-        }
+        if (m.id === matchId) return { ...m, scoreA, scoreB, status: 'finished' as const };
         return m;
       });
 
       if (tournament?.type === 'knockout') {
         const match = updatedMatches.find(m => m.id === matchId);
-        
-        console.log("DEBUG tutti i matches:", updatedMatches.map(m => ({ id: m.id, nextMatchId: m.nextMatchId, round: m.round })));
-        console.log("DEBUG match corrente:", match);
-        console.log("DEBUG match corrente nextMatchId:", match?.nextMatchId);
-        
         if (match && match.nextMatchId) {
           const winnerId = scoreA > scoreB ? match.teamAId : scoreB > scoreA ? match.teamBId : null;
-          console.log("DEBUG winnerId:", winnerId);
           if (winnerId) {
             const nextMatchIndex = updatedMatches.findIndex(m => m.id === match.nextMatchId);
-            console.log("DEBUG nextMatchIndex:", nextMatchIndex);
             if (nextMatchIndex !== -1) {
               const isTeamB = (match.positionInRound || 0) % 2 !== 0;
-              
               const updatedNextMatch = {
                 ...updatedMatches[nextMatchIndex],
                 teamAId: isTeamB ? updatedMatches[nextMatchIndex].teamAId : winnerId,
                 teamBId: isTeamB ? winnerId : updatedMatches[nextMatchIndex].teamBId,
               };
               updatedMatches[nextMatchIndex] = updatedNextMatch;
-
-              await supabase.from('matches').update({
-                team_a_id: updatedNextMatch.teamAId,
-                team_b_id: updatedNextMatch.teamBId
-              }).eq('id', updatedNextMatch.id);
+              await supabase.from('matches').update({ team_a_id: updatedNextMatch.teamAId, team_b_id: updatedNextMatch.teamBId }).eq('id', updatedNextMatch.id);
             }
           }
         }
@@ -755,32 +601,23 @@ const [selectedRound, setSelectedRound] = useState<number | null>(null);
       stats[t.id] = { id: t.id, name: t.name, p: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, pts: 0 };
     });
 
-    const finishedMatches = matches.filter(m => 
-      m.tournamentId === activeTournamentId && 
-      m.status === 'finished' && 
-      m.matchType === 'league_match'
-    );
+    const finishedMatches = matches.filter(m => m.tournamentId === activeTournamentId && m.status === 'finished' && m.matchType === 'league_match');
 
     finishedMatches.forEach(m => {
       if (!m.teamAId || !m.teamBId) return;
       const sA = stats[m.teamAId];
       const sB = stats[m.teamBId];
       if (!sA || !sB) return;
-
       sA.p++; sB.p++;
       sA.gf += m.scoreA; sA.ga += m.scoreB;
       sB.gf += m.scoreB; sB.ga += m.scoreA;
-
       if (m.scoreA > m.scoreB) { sA.w++; sB.l++; sA.pts += 3; }
       else if (m.scoreB > m.scoreA) { sB.w++; sA.l++; sB.pts += 3; }
       else { sA.d++; sB.d++; sA.pts += 1; sB.pts += 1; }
     });
 
     const getHeadToHead = (teamA: any, teamB: any) => {
-      const h2hMatches = finishedMatches.filter(m =>
-        (m.teamAId === teamA.id && m.teamBId === teamB.id) ||
-        (m.teamAId === teamB.id && m.teamBId === teamA.id)
-      );
+      const h2hMatches = finishedMatches.filter(m => (m.teamAId === teamA.id && m.teamBId === teamB.id) || (m.teamAId === teamB.id && m.teamBId === teamA.id));
       let ptsA = 0, ptsB = 0, gfA = 0, gaA = 0;
       h2hMatches.forEach(m => {
         if (m.teamAId === teamA.id) {
@@ -799,22 +636,13 @@ const [selectedRound, setSelectedRound] = useState<number | null>(null);
     };
 
     return Object.values(stats).sort((a: any, b: any) => {
-      // 1. Punti totali
       if (b.pts !== a.pts) return b.pts - a.pts;
-
-      // 2. Scontri diretti - punti
       const h2h = getHeadToHead(a, b);
       if (h2h.ptsA !== h2h.ptsB) return h2h.ptsB - h2h.ptsA;
-
-      // 3. Scontri diretti - differenza reti
       if (h2h.drA !== 0) return -h2h.drA;
-
-      // 4. Differenza reti totale
       const drA = a.gf - a.ga;
       const drB = b.gf - b.ga;
       if (drB !== drA) return drB - drA;
-
-      // 5. Spareggio necessario
       return 0;
     });
   }, [matches, currentTournamentTeams, activeTournamentId]);
@@ -823,17 +651,12 @@ const [selectedRound, setSelectedRound] = useState<number | null>(null);
     if (!activeTournamentId) return [];
     const tournamentMatchIds = new Set(matches.filter(m => m.tournamentId === activeTournamentId).map(m => m.id));
     const stats: Record<string, { goals: number; name: string; team: string }> = {};
-    
-    events
-      .filter(e => e.type === 'gol' && tournamentMatchIds.has(e.matchId))
-      .forEach(e => {
-        const player = players.find(p => p.id === e.playerId);
-        if (!player) return;
-        if (!stats[e.playerId]) {
-          stats[e.playerId] = { goals: 0, name: player.name, team: teams.find(t => t.id === player.teamId)?.name || '' };
-        }
-        stats[e.playerId].goals++;
-      });
+    events.filter(e => e.type === 'gol' && tournamentMatchIds.has(e.matchId)).forEach(e => {
+      const player = players.find(p => p.id === e.playerId);
+      if (!player) return;
+      if (!stats[e.playerId]) stats[e.playerId] = { goals: 0, name: player.name, team: teams.find(t => t.id === player.teamId)?.name || '' };
+      stats[e.playerId].goals++;
+    });
     return Object.values(stats).sort((a, b) => b.goals - a.goals);
   }, [events, players, teams, matches, activeTournamentId]);
 
@@ -841,17 +664,12 @@ const [selectedRound, setSelectedRound] = useState<number | null>(null);
     if (!activeTournamentId) return [];
     const tournamentMatchIds = new Set(matches.filter(m => m.tournamentId === activeTournamentId).map(m => m.id));
     const stats: Record<string, { assists: number; name: string; team: string }> = {};
-    
-    events
-      .filter(e => e.type === 'assist' && tournamentMatchIds.has(e.matchId))
-      .forEach(e => {
-        const player = players.find(p => p.id === e.playerId);
-        if (!player) return;
-        if (!stats[e.playerId]) {
-          stats[e.playerId] = { assists: 0, name: player.name, team: teams.find(t => t.id === player.teamId)?.name || '' };
-        }
-        stats[e.playerId].assists++;
-      });
+    events.filter(e => e.type === 'assist' && tournamentMatchIds.has(e.matchId)).forEach(e => {
+      const player = players.find(p => p.id === e.playerId);
+      if (!player) return;
+      if (!stats[e.playerId]) stats[e.playerId] = { assists: 0, name: player.name, team: teams.find(t => t.id === player.teamId)?.name || '' };
+      stats[e.playerId].assists++;
+    });
     return Object.values(stats).sort((a, b) => b.assists - a.assists);
   }, [events, players, teams, matches, activeTournamentId]);
 
@@ -868,16 +686,16 @@ const [selectedRound, setSelectedRound] = useState<number | null>(null);
       <HomeView 
         tournaments={tournaments} 
         onSelect={(id: string) => { 
-  setActiveTournamentId(id);
-  supabase.from('matches').select('match_type').eq('tournament_id', id).limit(1).then(({ data }) => {
-    if (data && data[0]?.match_type?.startsWith('girone_')) {
-      setView('gironi');
-    } else {
-      loadTournamentDetails(id);
-      setView('dashboard');
-    }
-  });
-}}
+          setActiveTournamentId(id);
+          supabase.from('matches').select('match_type').eq('tournament_id', id).limit(1).then(({ data }) => {
+            if (data && data[0]?.match_type?.startsWith('girone_')) {
+              setView('gironi');
+            } else {
+              loadTournamentDetails(id);
+              setView('dashboard');
+            }
+          });
+        }}
         onCreate={() => setView('setup')}
         onDelete={deleteTournament}
         onToggleStatus={(id: string, status: TournamentStatus) => updateTournamentStatus(id, status)}
@@ -901,9 +719,7 @@ const [selectedRound, setSelectedRound] = useState<number | null>(null);
           try {
             const savedTeam = await saveTeamDB({ ...teamData, user_id: user.id });
             setTeams([...teams, { id: savedTeam.id, name: savedTeam.name, logoUrl: savedTeam.logo_url, colors: savedTeam.colors }]);
-          } catch (error) {
-            console.error('Error saving team:', error);
-          }
+          } catch (error) { console.error('Error saving team:', error); }
         }}
         onDeleteTeam={async (id) => {
           const teamToDelete = teams.find(t => t.id === id);
@@ -916,45 +732,24 @@ const [selectedRound, setSelectedRound] = useState<number | null>(null);
                 await deleteTeamDB(id);
                 setTeams(teams.filter(t => t.id !== id));
                 setTournamentTeams(tournamentTeams.filter(tt => tt.teamId !== id));
-              } catch (error) {
-                console.error('Error deleting team:', error);
-              }
+              } catch (error) { console.error('Error deleting team:', error); }
             }
           });
         }}
         onAddPlayer={async (teamId, name, number, playerExternalId) => {
           if (!user) return;
           try {
-            const savedPlayer = await savePlayerDB({ 
-              team_id: teamId, 
-              name, 
-              number, 
-              player_external_id: playerExternalId,
-              user_id: user.id
-            });
-            setPlayers([...players, { 
-              id: savedPlayer.id, 
-              teamId: savedPlayer.team_id, 
-              name: savedPlayer.name, 
-              number: savedPlayer.number, 
-              playerExternalId: savedPlayer.player_external_id 
-            }]);
-          } catch (error) {
-            console.error('Error saving player:', error);
-          }
+            const savedPlayer = await savePlayerDB({ team_id: teamId, name, number, player_external_id: playerExternalId, user_id: user.id });
+            setPlayers([...players, { id: savedPlayer.id, teamId: savedPlayer.team_id, name: savedPlayer.name, number: savedPlayer.number, playerExternalId: savedPlayer.player_external_id }]);
+          } catch (error) { console.error('Error saving player:', error); }
         }}
         onUpdatePlayer={async (id, updates) => {
           try {
             const dbUpdates: any = { ...updates };
-            if (updates.playerExternalId) {
-              dbUpdates.player_external_id = updates.playerExternalId;
-              delete dbUpdates.playerExternalId;
-            }
+            if (updates.playerExternalId) { dbUpdates.player_external_id = updates.playerExternalId; delete dbUpdates.playerExternalId; }
             await updatePlayerDB(id, dbUpdates);
             setPlayers(players.map(p => p.id === id ? { ...p, ...updates } : p));
-          } catch (error) {
-            console.error('Error updating player:', error);
-          }
+          } catch (error) { console.error('Error updating player:', error); }
         }}
         onRemovePlayer={async (id) => {
           const playerToDelete = players.find(p => p.id === id);
@@ -966,9 +761,7 @@ const [selectedRound, setSelectedRound] = useState<number | null>(null);
               try {
                 await deletePlayerDB(id);
                 setPlayers(players.filter(p => p.id !== id));
-              } catch (error) {
-                console.error('Error deleting player:', error);
-              }
+              } catch (error) { console.error('Error deleting player:', error); }
             }
           });
         }}
@@ -977,30 +770,30 @@ const [selectedRound, setSelectedRound] = useState<number | null>(null);
     );
   }
 
- if (view === 'gironi') {
-  return (
-    <GroupTournaments 
-      onBack={() => { setActiveTournamentId(null); setView('home'); }}
-      onTournamentCreated={() => loadUserData()}
-      existingTournamentId={activeTournamentId || undefined}
-    />
-  );
-}
+  if (view === 'gironi') {
+    return (
+      <GroupTournaments 
+        onBack={() => { setActiveTournamentId(null); setView('home'); }}
+        onTournamentCreated={() => loadUserData()}
+        existingTournamentId={activeTournamentId || undefined}
+      />
+    );
+  }
 
-if (view === 'teams') {
-  return (
-    <TeamRegistrationView 
-      tournament={tournament}
-      teams={teams}
-      currentTournamentTeams={currentTournamentTeams}
-      onAddExistingTeam={(id: string) => addTeamToTournament(id)}
-      onCreateAndAddTeam={(teamData: any) => createAndAddTeam(teamData)}
-      onRemoveTeam={(id: string) => removeTeamFromTournament(id)}
-      onGenerate={(teams: any) => generateCalendar(teams)}
-      onRefreshTeams={() => loadUserData()}
-    />
-  );
-}
+  if (view === 'teams') {
+    return (
+      <TeamRegistrationView 
+        tournament={tournament}
+        teams={teams}
+        currentTournamentTeams={currentTournamentTeams}
+        onAddExistingTeam={(id: string) => addTeamToTournament(id)}
+        onCreateAndAddTeam={(teamData: any) => createAndAddTeam(teamData)}
+        onRemoveTeam={(id: string) => removeTeamFromTournament(id)}
+        onGenerate={(teams: any) => generateCalendar(teams)}
+        onRefreshTeams={() => loadUserData()}
+      />
+    );
+  }
   
   if (view === 'roster') {
     return (
@@ -1024,14 +817,14 @@ if (view === 'teams') {
             <button onClick={() => setView('home')} className="bg-slate-800 p-1.5 rounded-lg hover:bg-slate-700 transition-colors">
               <LayoutDashboard className="w-5 h-5" />
             </button>
+            {tournament?.logoUrl && (
+              <img src={tournament.logoUrl} alt="Logo" className="w-8 h-8 rounded-lg object-cover border border-slate-700" />
+            )}
             <h1 className="font-bold text-lg tracking-tight uppercase">{tournament?.name}</h1>
           </div>
           <div className="flex items-center gap-4">
             {activeTournamentId && (
-              <button 
-                onClick={handleShare}
-                className="flex items-center gap-2 px-3 py-1.5 bg-indigo-600 text-white rounded-xl text-xs font-bold hover:bg-indigo-700 transition-all"
-              >
+              <button onClick={handleShare} className="flex items-center gap-2 px-3 py-1.5 bg-indigo-600 text-white rounded-xl text-xs font-bold hover:bg-indigo-700 transition-all">
                 <Share2 className="w-3.5 h-3.5" />
                 <span className="hidden sm:inline">Condividi</span>
               </button>
@@ -1055,9 +848,7 @@ if (view === 'teams') {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id as any)}
-                  className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                    activeTab === tab.id ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white'
-                  }`}
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${activeTab === tab.id ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white'}`}
                 >
                   <tab.icon className="w-3.5 h-3.5" />
                   <span className="hidden sm:inline">{tab.label}</span>
@@ -1066,43 +857,19 @@ if (view === 'teams') {
             </div>
             
             <div className="relative">
-              <button 
-                onClick={(e) => { e.stopPropagation(); setIsSettingsOpen(!isSettingsOpen); }}
-                className="p-2 bg-slate-800 rounded-lg text-slate-400 hover:text-white transition-colors"
-              >
+              <button onClick={(e) => { e.stopPropagation(); setIsSettingsOpen(!isSettingsOpen); }} className="p-2 bg-slate-800 rounded-lg text-slate-400 hover:text-white transition-colors">
                 <Settings className="w-5 h-5" />
               </button>
               <AnimatePresence>
                 {isSettingsOpen && (
-                  <motion.div 
-                    initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }}
-                    className="absolute right-0 mt-2 w-48 bg-white rounded-2xl shadow-2xl border border-slate-100 py-2 z-50"
-                  >
-                    <button 
-  onClick={() => setView('roster')}
-  className="w-full px-4 py-2 text-left text-sm font-bold text-slate-700 hover:bg-slate-50 flex items-center gap-2"
->
-  Gestione Rose
-</button>
-<button 
-  onClick={() => { setIsReplaceTeamOpen(true); setIsSettingsOpen(false); }}
-  className="w-full px-4 py-2 text-left text-sm font-bold text-slate-700 hover:bg-slate-50 flex items-center gap-2"
->
-  Sostituisci Squadra
-</button>
-<button 
-  onClick={() => updateTournamentStatus(activeTournamentId!, tournament?.status === 'nascosto' ? 'attivo' : 'nascosto')}
-  className="w-full px-4 py-2 text-left text-sm font-bold text-slate-700 hover:bg-slate-50 flex items-center gap-2"
->
-  {tournament?.status === 'nascosto' ? 'Mostra Torneo' : 'Nascondi Torneo'}
-</button>
-<div className="h-px bg-slate-100 my-1" />
-<button 
-  onClick={() => deleteTournament(activeTournamentId!)}
-  className="w-full px-4 py-2 text-left text-sm font-bold text-red-600 hover:bg-red-50 flex items-center gap-2"
->
-  Elimina Torneo
-</button>
+                  <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="absolute right-0 mt-2 w-48 bg-white rounded-2xl shadow-2xl border border-slate-100 py-2 z-50">
+                    <button onClick={() => setView('roster')} className="w-full px-4 py-2 text-left text-sm font-bold text-slate-700 hover:bg-slate-50 flex items-center gap-2">Gestione Rose</button>
+                    <button onClick={() => { setIsReplaceTeamOpen(true); setIsSettingsOpen(false); }} className="w-full px-4 py-2 text-left text-sm font-bold text-slate-700 hover:bg-slate-50 flex items-center gap-2">Sostituisci Squadra</button>
+                    <button onClick={() => updateTournamentStatus(activeTournamentId!, tournament?.status === 'nascosto' ? 'attivo' : 'nascosto')} className="w-full px-4 py-2 text-left text-sm font-bold text-slate-700 hover:bg-slate-50 flex items-center gap-2">
+                      {tournament?.status === 'nascosto' ? 'Mostra Torneo' : 'Nascondi Torneo'}
+                    </button>
+                    <div className="h-px bg-slate-100 my-1" />
+                    <button onClick={() => deleteTournament(activeTournamentId!)} className="w-full px-4 py-2 text-left text-sm font-bold text-red-600 hover:bg-red-50 flex items-center gap-2">Elimina Torneo</button>
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -1120,88 +887,77 @@ if (view === 'teams') {
       <main className="max-w-4xl mx-auto p-4 mt-4">
         <AnimatePresence mode="wait">
           {activeTab === 'matches' && (
-<motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-6">
-  {/* Dropdown selezione giornata */}
-  <div className="flex items-center gap-4">
-    <label className="text-sm font-black uppercase tracking-widest text-slate-400">Giornata:</label>
-    <select
-      value={selectedRound ?? ''}
-      onChange={e => setSelectedRound(e.target.value ? parseInt(e.target.value) : null)}
-      className="bg-white border border-slate-200 rounded-2xl px-4 py-2 font-black text-slate-700 text-sm outline-none shadow-sm"
-    >
-      <option value="">Seleziona giornata...</option>
-      {Array.from(new Set(matches.filter(m => m.tournamentId === activeTournamentId).map(m => m.round)))
-        .sort((a: number, b: number) => a - b)
-        .map(roundNum => {
-          const isReturn = matches.filter(m => m.tournamentId === activeTournamentId && m.round === roundNum)[0]?.isReturnMatch;
-          return (
-            <option key={roundNum} value={roundNum}>
-              Giornata {roundNum}{isReturn ? ' (Ritorno)' : ''}
-            </option>
-          );
-        })}
-    </select>
-  </div>
+            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-6">
+              <div className="flex items-center gap-4">
+                <label className="text-sm font-black uppercase tracking-widest text-slate-400">Giornata:</label>
+                <select
+                  value={selectedRound ?? ''}
+                  onChange={e => setSelectedRound(e.target.value ? parseInt(e.target.value) : null)}
+                  className="bg-white border border-slate-200 rounded-2xl px-4 py-2 font-black text-slate-700 text-sm outline-none shadow-sm"
+                >
+                  <option value="">Seleziona giornata...</option>
+                  {Array.from(new Set(matches.filter(m => m.tournamentId === activeTournamentId).map(m => m.round)))
+                    .sort((a: number, b: number) => a - b)
+                    .map(roundNum => {
+                      const isReturn = matches.filter(m => m.tournamentId === activeTournamentId && m.round === roundNum)[0]?.isReturnMatch;
+                      return (
+                        <option key={roundNum} value={roundNum}>
+                          Giornata {roundNum}{isReturn ? ' (Ritorno)' : ''}
+                        </option>
+                      );
+                    })}
+                </select>
+              </div>
 
-  {/* Partite della giornata selezionata */}
-  {selectedRound && (() => {
-    const roundMatches = matches.filter(m => m.tournamentId === activeTournamentId && m.round === selectedRound);
-    const isReturn = roundMatches[0]?.isReturnMatch;
-    return (
-      <div className="space-y-4">
-        <div className="flex items-center gap-4 px-2">
-          <h2 className="text-sm font-black uppercase tracking-[0.2em] text-indigo-600">
-            Giornata {selectedRound}
-          </h2>
-          <div className="h-px bg-slate-200 flex-1" />
-          {isReturn && (
-            <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 bg-slate-100 px-2 py-1 rounded-md">
-              Ritorno
-            </span>
-          )}
-        </div>
-        <div className="grid gap-4">
-          {roundMatches.map(match => {
-            const teamA = teams.find(t => t.id === match.teamAId);
-            const teamB = teams.find(t => t.id === match.teamBId);
-            return (
-              <div key={match.id} className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
-                <div className="flex items-center justify-between">
-                  <div className="flex-1 text-right font-bold text-slate-700 truncate">{teamA?.name}</div>
-                  <div className="flex items-center gap-4 px-6">
-                    <div className="w-12 h-12 flex items-center justify-center text-2xl font-black bg-slate-50 rounded-xl border border-slate-100">
-                      {match.status === 'finished' ? match.scoreA : '-'}
+              {selectedRound && (() => {
+                const roundMatches = matches.filter(m => m.tournamentId === activeTournamentId && m.round === selectedRound);
+                const isReturn = roundMatches[0]?.isReturnMatch;
+                return (
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-4 px-2">
+                      <h2 className="text-sm font-black uppercase tracking-[0.2em] text-indigo-600">Giornata {selectedRound}</h2>
+                      <div className="h-px bg-slate-200 flex-1" />
+                      {isReturn && <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 bg-slate-100 px-2 py-1 rounded-md">Ritorno</span>}
                     </div>
-                    <div className="text-[10px] font-black text-slate-300 uppercase tracking-widest">VS</div>
-                    <div className="w-12 h-12 flex items-center justify-center text-2xl font-black bg-slate-50 rounded-xl border border-slate-100">
-                      {match.status === 'finished' ? match.scoreB : '-'}
+                    <div className="grid gap-4">
+                      {roundMatches.map(match => {
+                        const teamA = teams.find(t => t.id === match.teamAId);
+                        const teamB = teams.find(t => t.id === match.teamBId);
+                        return (
+                          <div key={match.id} className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
+                            <div className="flex items-center justify-between">
+                              <div className="flex-1 text-right font-bold text-slate-700 truncate">{teamA?.name}</div>
+                              <div className="flex items-center gap-4 px-6">
+                                <div className="w-12 h-12 flex items-center justify-center text-2xl font-black bg-slate-50 rounded-xl border border-slate-100">
+                                  {match.status === 'finished' ? match.scoreA : '-'}
+                                </div>
+                                <div className="text-[10px] font-black text-slate-300 uppercase tracking-widest">VS</div>
+                                <div className="w-12 h-12 flex items-center justify-center text-2xl font-black bg-slate-50 rounded-xl border border-slate-100">
+                                  {match.status === 'finished' ? match.scoreB : '-'}
+                                </div>
+                              </div>
+                              <div className="flex-1 text-left font-bold text-slate-700 truncate">{teamB?.name}</div>
+                            </div>
+                            <div className="flex justify-center mt-3">
+                              <button onClick={() => setSelectedMatchId(match.id)} className="text-[10px] font-black uppercase tracking-widest text-indigo-400 hover:text-indigo-600 transition-colors">
+                                Referto Marcatori
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
-                  <div className="flex-1 text-left font-bold text-slate-700 truncate">{teamB?.name}</div>
-                </div>
-                <div className="flex justify-center mt-3">
-                  <button
-                    onClick={() => setSelectedMatchId(match.id)}
-                    className="text-[10px] font-black uppercase tracking-widest text-indigo-400 hover:text-indigo-600 transition-colors"
-                  >
-                    Referto Marcatori
-                  </button>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    );
-  })()}
+                );
+              })()}
 
-  {!selectedRound && (
-    <div className="text-center py-12 text-slate-400 italic text-sm">
-      Seleziona una giornata dal menu per visualizzare le partite.
-    </div>
-  )}
-</motion.div>
-)}
+              {!selectedRound && (
+                <div className="text-center py-12 text-slate-400 italic text-sm">
+                  Seleziona una giornata dal menu per visualizzare le partite.
+                </div>
+              )}
+            </motion.div>
+          )}
 
           {activeTab === 'standings' && tournament?.type === 'league' && (
             <StandingsTable standings={standings} />
@@ -1236,22 +992,14 @@ if (view === 'teams') {
                             const teamA = teams.find(t => t.id === match.teamAId);
                             const teamB = teams.find(t => t.id === match.teamBId);
                             return (
-                              <div 
-                                key={match.id} 
-                                onClick={() => setSelectedMatchId(match.id)}
-                                className="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 w-64 cursor-pointer hover:border-indigo-400 transition-all space-y-2"
-                              >
+                              <div key={match.id} onClick={() => setSelectedMatchId(match.id)} className="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 w-64 cursor-pointer hover:border-indigo-400 transition-all space-y-2">
                                 <div className="flex justify-between items-center">
-                                  <span className={`text-sm font-bold truncate flex-1 ${match.status === 'finished' && match.scoreA > match.scoreB ? 'text-indigo-600' : 'text-slate-600'}`}>
-                                    {teamA?.name || '---'}
-                                  </span>
+                                  <span className={`text-sm font-bold truncate flex-1 ${match.status === 'finished' && match.scoreA > match.scoreB ? 'text-indigo-600' : 'text-slate-600'}`}>{teamA?.name || '---'}</span>
                                   <span className="font-black text-slate-900 ml-2">{match.status === 'finished' ? match.scoreA : '-'}</span>
                                 </div>
                                 <div className="h-px bg-slate-100" />
                                 <div className="flex justify-between items-center">
-                                  <span className={`text-sm font-bold truncate flex-1 ${match.status === 'finished' && match.scoreB > match.scoreA ? 'text-indigo-600' : 'text-slate-600'}`}>
-                                    {teamB?.name || '---'}
-                                  </span>
+                                  <span className={`text-sm font-bold truncate flex-1 ${match.status === 'finished' && match.scoreB > match.scoreA ? 'text-indigo-600' : 'text-slate-600'}`}>{teamB?.name || '---'}</span>
                                   <span className="font-black text-slate-900 ml-2">{match.status === 'finished' ? match.scoreB : '-'}</span>
                                 </div>
                               </div>
@@ -1270,83 +1018,57 @@ if (view === 'teams') {
       <AnimatePresence>
         {selectedMatchId && (
           <MatchReportForm 
-  match={matches.find(m => m.id === selectedMatchId)!}
-  teams={teams}
-  players={players}
-  events={events.filter(e => e.matchId === selectedMatchId)}
-  onUpdateScore={(sA, sB) => updateMatchScore(selectedMatchId, sA, sB)}
-  onAddEvent={(pId, type) => addMatchEvent(selectedMatchId, pId, type)}
-  onRemoveEvent={removeMatchEvent}
-  onResetMatch={() => resetMatch(selectedMatchId!)}
-  onClose={() => setSelectedMatchId(null)}
-/>
+            match={matches.find(m => m.id === selectedMatchId)!}
+            teams={teams}
+            players={players}
+            events={events.filter(e => e.matchId === selectedMatchId)}
+            onUpdateScore={(sA, sB) => updateMatchScore(selectedMatchId, sA, sB)}
+            onAddEvent={(pId, type) => addMatchEvent(selectedMatchId, pId, type)}
+            onRemoveEvent={removeMatchEvent}
+            onResetMatch={() => resetMatch(selectedMatchId!)}
+            onClose={() => setSelectedMatchId(null)}
+          />
         )}
       </AnimatePresence>
 
-      {/* Global Modals */}
+      {/* Replace Team Modal */}
       {isReplaceTeamOpen && (
-  <div className="fixed inset-0 z-[200] bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4">
-    <div className="bg-white w-full max-w-md rounded-3xl p-8 shadow-2xl space-y-6">
-      <h2 className="text-xl font-black text-slate-900">Sostituisci Squadra</h2>
-      <p className="text-sm text-slate-400">La nuova squadra prenderà il posto della vecchia con tutti i risultati, punti e gol già registrati.</p>
-      
-      <div className="space-y-2">
-        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Squadra da sostituire</label>
-        <select
-          className="w-full p-4 bg-slate-50 rounded-2xl border border-slate-200 outline-none font-bold"
-          value={replaceOldTeamId}
-          onChange={e => setReplaceOldTeamId(e.target.value)}
-        >
-          <option value="">Scegli squadra...</option>
-          {currentTournamentTeams.map(t => (
-            <option key={t.id} value={t.id}>{t.name}</option>
-          ))}
-        </select>
-      </div>
+        <div className="fixed inset-0 z-[200] bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white w-full max-w-md rounded-3xl p-8 shadow-2xl space-y-6">
+            <h2 className="text-xl font-black text-slate-900">Sostituisci Squadra</h2>
+            <p className="text-sm text-slate-400">La nuova squadra prenderà il posto della vecchia con tutti i risultati, punti e gol già registrati.</p>
+            <div className="space-y-2">
+              <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Squadra da sostituire</label>
+              <select className="w-full p-4 bg-slate-50 rounded-2xl border border-slate-200 outline-none font-bold" value={replaceOldTeamId} onChange={e => setReplaceOldTeamId(e.target.value)}>
+                <option value="">Scegli squadra...</option>
+                {currentTournamentTeams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+              </select>
+            </div>
+            <div className="space-y-2">
+              <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Nuova squadra</label>
+              <select className="w-full p-4 bg-slate-50 rounded-2xl border border-slate-200 outline-none font-bold" value={replaceNewTeamId} onChange={e => setReplaceNewTeamId(e.target.value)}>
+                <option value="">Scegli squadra...</option>
+                {teams.filter(t => !currentTournamentTeams.find(ct => ct.id === t.id)).map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+              </select>
+            </div>
+            <div className="flex gap-3">
+              <button onClick={() => setIsReplaceTeamOpen(false)} className="flex-1 py-3 rounded-2xl font-black text-sm text-slate-400 hover:text-slate-600 bg-slate-100">Annulla</button>
+              <button disabled={!replaceOldTeamId || !replaceNewTeamId} onClick={() => replaceTeamInTournament(replaceOldTeamId, replaceNewTeamId)} className="flex-1 bg-indigo-600 text-white py-3 rounded-2xl font-black text-sm disabled:opacity-50 hover:bg-indigo-700 transition-all">Sostituisci</button>
+            </div>
+          </div>
+        </div>
+      )}
 
-      <div className="space-y-2">
-        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Nuova squadra</label>
-        <select
-          className="w-full p-4 bg-slate-50 rounded-2xl border border-slate-200 outline-none font-bold"
-          value={replaceNewTeamId}
-          onChange={e => setReplaceNewTeamId(e.target.value)}
-        >
-          <option value="">Scegli squadra...</option>
-          {teams.filter(t => !currentTournamentTeams.find(ct => ct.id === t.id)).map(t => (
-            <option key={t.id} value={t.id}>{t.name}</option>
-          ))}
-        </select>
-      </div>
-
-      <div className="flex gap-3">
-        <button
-          onClick={() => setIsReplaceTeamOpen(false)}
-          className="flex-1 py-3 rounded-2xl font-black text-sm text-slate-400 hover:text-slate-600 bg-slate-100"
-        >
-          Annulla
-        </button>
-        <button
-          disabled={!replaceOldTeamId || !replaceNewTeamId}
-          onClick={() => replaceTeamInTournament(replaceOldTeamId, replaceNewTeamId)}
-          className="flex-1 bg-indigo-600 text-white py-3 rounded-2xl font-black text-sm disabled:opacity-50 hover:bg-indigo-700 transition-all"
-        >
-          Sostituisci
-        </button>
-      </div>
+      <ConfirmModal
+        isOpen={confirmModal.isOpen}
+        onClose={() => setConfirmModal({ ...confirmModal, isOpen: false })}
+        onConfirm={confirmModal.onConfirm}
+        title={confirmModal.title}
+        message={confirmModal.message}
+      />
     </div>
-  </div>
-)}
-
-<ConfirmModal
-          isOpen={confirmModal.isOpen}
-          onClose={() => setConfirmModal({ ...confirmModal, isOpen: false })}
-          onConfirm={confirmModal.onConfirm}
-          title={confirmModal.title}
-          message={confirmModal.message}
-        />
-      </div>
-    );
-  }
+  );
+}
 
 // --- Sub-Components ---
 
@@ -1358,12 +1080,8 @@ function HomeView({ tournaments, onSelect, onCreate, onDelete, onToggleStatus, s
   const [user, setUser] = useState<any>(null);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-    });
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-    });
+    supabase.auth.getSession().then(({ data: { session } }) => { setUser(session?.user ?? null); });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => { setUser(session?.user ?? null); });
     return () => subscription.unsubscribe();
   }, []);
 
@@ -1389,11 +1107,7 @@ function HomeView({ tournaments, onSelect, onCreate, onDelete, onToggleStatus, s
   if (!user) {
     return (
       <div className="min-h-screen bg-slate-900 flex items-center justify-center p-6">
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-white w-full max-w-md rounded-[2.5rem] p-10 shadow-2xl space-y-8"
-        >
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-white w-full max-w-md rounded-[2.5rem] p-10 shadow-2xl space-y-8">
           <div className="text-center space-y-2">
             <div className="bg-indigo-600 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto shadow-xl shadow-indigo-500/30 mb-6">
               <Trophy className="text-white w-8 h-8" />
@@ -1401,41 +1115,21 @@ function HomeView({ tournaments, onSelect, onCreate, onDelete, onToggleStatus, s
             <h1 className="text-3xl font-black text-slate-900 tracking-tight">Tournament Master</h1>
             <p className="text-slate-400 font-medium">Accedi per gestire i tuoi tornei.</p>
           </div>
-
           <form onSubmit={handleAuth} className="space-y-4">
             <div className="space-y-2">
               <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Email</label>
-              <input 
-                type="email"
-                required
-                className="w-full p-4 bg-slate-50 rounded-2xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none font-bold"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-              />
+              <input type="email" required className="w-full p-4 bg-slate-50 rounded-2xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none font-bold" value={email} onChange={e => setEmail(e.target.value)} />
             </div>
             <div className="space-y-2">
               <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Password</label>
-              <input 
-                type="password"
-                required
-                className="w-full p-4 bg-slate-50 rounded-2xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none font-bold"
-                value={password}
-                onChange={e => setPassword(e.target.value)}
-              />
+              <input type="password" required className="w-full p-4 bg-slate-50 rounded-2xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none font-bold" value={password} onChange={e => setPassword(e.target.value)} />
             </div>
-            <button 
-              disabled={loading}
-              className="w-full bg-indigo-600 text-white font-black py-4 rounded-2xl shadow-xl shadow-indigo-500/30 hover:bg-indigo-700 transition-all disabled:opacity-50"
-            >
+            <button disabled={loading} className="w-full bg-indigo-600 text-white font-black py-4 rounded-2xl shadow-xl shadow-indigo-500/30 hover:bg-indigo-700 transition-all disabled:opacity-50">
               {loading ? 'Caricamento...' : isLogin ? 'Accedi' : 'Registrati'}
             </button>
           </form>
-
           <div className="text-center">
-            <button 
-              onClick={() => setIsLogin(!isLogin)}
-              className="text-xs font-bold text-slate-400 hover:text-indigo-600 transition-colors"
-            >
+            <button onClick={() => setIsLogin(!isLogin)} className="text-xs font-bold text-slate-400 hover:text-indigo-600 transition-colors">
               {isLogin ? 'Non hai un account? Registrati' : 'Hai già un account? Accedi'}
             </button>
           </div>
@@ -1455,37 +1149,20 @@ function HomeView({ tournaments, onSelect, onCreate, onDelete, onToggleStatus, s
             </p>
           </div>
           <div className="flex gap-4">
-            <button 
-              onClick={() => supabase.auth.signOut()}
-              className="text-slate-400 hover:text-red-500 font-bold text-xs transition-colors"
-            >
-              Logout
-            </button>
-
-           <button 
-              onClick={() => setView('clubs')}
-              className="bg-white text-slate-900 border border-slate-200 px-6 py-3 rounded-2xl font-black text-sm shadow-sm flex items-center gap-2 hover:bg-slate-50 transition-colors"
-            >
+            <button onClick={() => supabase.auth.signOut()} className="text-slate-400 hover:text-red-500 font-bold text-xs transition-colors">Logout</button>
+            <button onClick={() => setView('clubs')} className="bg-white text-slate-900 border border-slate-200 px-6 py-3 rounded-2xl font-black text-sm shadow-sm flex items-center gap-2 hover:bg-slate-50 transition-colors">
               <ShieldCheck className="w-4 h-4" /> Anagrafica Club
             </button>
-
-            <button 
-              onClick={() => setView('gironi')}
-              className="bg-blue-600 text-white px-6 py-3 rounded-2xl font-black text-sm shadow-xl shadow-blue-500/20 flex items-center gap-2 hover:bg-blue-700 transition-all"
-            >
+            <button onClick={() => setView('gironi')} className="bg-blue-600 text-white px-6 py-3 rounded-2xl font-black text-sm shadow-xl shadow-blue-500/20 flex items-center gap-2 hover:bg-blue-700 transition-all">
               <Trophy className="w-4 h-4" /> Torneo a Gironi
             </button>
-
-            <button 
-              onClick={onCreate}
-              className="bg-indigo-600 text-white px-6 py-3 rounded-2xl font-black text-sm shadow-xl shadow-indigo-500/20 flex items-center gap-2"
-            >
+            <button onClick={onCreate} className="bg-indigo-600 text-white px-6 py-3 rounded-2xl font-black text-sm shadow-xl shadow-indigo-500/20 flex items-center gap-2">
               <Plus className="w-4 h-4" /> Nuovo Torneo
             </button>
           </div>
         </div>
 
-          <div className="grid sm:grid-cols-2 gap-6">
+        <div className="grid sm:grid-cols-2 gap-6">
           {tournaments.length === 0 && (
             <div className="col-span-full py-20 text-center space-y-4">
               <div className="bg-slate-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto text-slate-300">
@@ -1510,16 +1187,13 @@ function HomeView({ tournaments, onSelect, onCreate, onDelete, onToggleStatus, s
                 </div>
               </div>
               <div className="flex items-center gap-3 mb-1">
-  {t.logoUrl && (
-    <img src={t.logoUrl} alt="Logo" className="w-10 h-10 rounded-xl object-cover border border-slate-100" />
-  )}
-  <h3 className="text-xl font-black text-slate-900">{t.name}</h3>
-</div>
+                {t.logoUrl && (
+                  <img src={t.logoUrl} alt="Logo" className="w-10 h-10 rounded-xl object-cover border border-slate-100" />
+                )}
+                <h3 className="text-xl font-black text-slate-900">{t.name}</h3>
+              </div>
               <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-6">{t.type === 'league' ? 'Campionato' : 'Eliminazione'} • {t.maxTeams} Squadre</p>
-              <button 
-                onClick={() => onSelect(t.id)}
-                className="w-full bg-slate-900 text-white py-3 rounded-2xl font-black text-sm group-hover:bg-indigo-600 transition-colors"
-              >
+              <button onClick={() => onSelect(t.id)} className="w-full bg-slate-900 text-white py-3 rounded-2xl font-black text-sm group-hover:bg-indigo-600 transition-colors">
                 Gestisci Torneo
               </button>
             </div>
@@ -1539,20 +1213,34 @@ function SetupView({ onCreate, onBack }: { onCreate: (name: string, type: Tourna
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    const img = new Image();
     const reader = new FileReader();
     reader.onloadend = () => {
-      setLogoPreview(reader.result as string);
+      img.src = reader.result as string;
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const MAX_SIZE = 200;
+        let width = img.width;
+        let height = img.height;
+        if (width > height) {
+          if (width > MAX_SIZE) { height = height * MAX_SIZE / width; width = MAX_SIZE; }
+        } else {
+          if (height > MAX_SIZE) { width = width * MAX_SIZE / height; height = MAX_SIZE; }
+        }
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx?.drawImage(img, 0, 0, width, height);
+        const compressed = canvas.toDataURL('image/jpeg', 0.7);
+        setLogoPreview(compressed);
+      };
     };
     reader.readAsDataURL(file);
   };
 
   return (
     <div className="min-h-screen bg-slate-900 flex items-center justify-center p-6">
-      <motion.div 
-        initial={{ opacity: 0, scale: 0.9 }}
-        animate={{ opacity: 1, scale: 1 }}
-        className="bg-white w-full max-w-md rounded-3xl p-8 shadow-2xl space-y-8"
-      >
+      <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="bg-white w-full max-w-md rounded-3xl p-8 shadow-2xl space-y-8">
         <div className="flex justify-between items-start">
           <button onClick={onBack} className="text-slate-400 hover:text-slate-600"><X className="w-6 h-6" /></button>
           <div className="bg-indigo-600 w-12 h-12 rounded-2xl flex items-center justify-center shadow-xl shadow-indigo-500/30">
@@ -1583,52 +1271,31 @@ function SetupView({ onCreate, onBack }: { onCreate: (name: string, type: Tourna
                 <input type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} />
               </label>
               {logoPreview && (
-                <button onClick={() => setLogoPreview(null)} className="text-red-400 hover:text-red-600 text-xs font-bold">
-                  Rimuovi
-                </button>
+                <button onClick={() => setLogoPreview(null)} className="text-red-400 hover:text-red-600 text-xs font-bold">Rimuovi</button>
               )}
             </div>
           </div>
 
           <div className="space-y-2">
             <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Nome Torneo</label>
-            <input 
-              type="text"
-              placeholder="Es. Champions League 2024"
-              className="w-full p-4 bg-slate-50 rounded-2xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none font-bold"
-              value={name}
-              onChange={e => setName(e.target.value)}
-            />
+            <input type="text" placeholder="Es. Champions League 2024" className="w-full p-4 bg-slate-50 rounded-2xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none font-bold" value={name} onChange={e => setName(e.target.value)} />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Modalità</label>
-              <select 
-                className="w-full p-4 bg-slate-50 rounded-2xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none font-bold appearance-none"
-                value={type}
-                onChange={e => setType(e.target.value as TournamentType)}
-              >
+              <select className="w-full p-4 bg-slate-50 rounded-2xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none font-bold appearance-none" value={type} onChange={e => setType(e.target.value as TournamentType)}>
                 <option value="league">Campionato</option>
                 <option value="knockout">Eliminazione</option>
               </select>
             </div>
             <div className="space-y-2">
               <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Max Squadre</label>
-              <input 
-                type="number"
-                className="w-full p-4 bg-slate-50 rounded-2xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none font-bold"
-                value={maxTeams}
-                onChange={e => setMaxTeams(parseInt(e.target.value) || 2)}
-              />
+              <input type="number" className="w-full p-4 bg-slate-50 rounded-2xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none font-bold" value={maxTeams} onChange={e => setMaxTeams(parseInt(e.target.value) || 2)} />
             </div>
           </div>
 
-          <button 
-            disabled={!name}
-            onClick={() => onCreate(name, type, maxTeams, logoPreview || undefined)}
-            className="w-full bg-indigo-600 text-white font-black py-4 rounded-2xl shadow-xl shadow-indigo-500/30 hover:bg-indigo-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-          >
+          <button disabled={!name} onClick={() => onCreate(name, type, maxTeams, logoPreview || undefined)} className="w-full bg-indigo-600 text-white font-black py-4 rounded-2xl shadow-xl shadow-indigo-500/30 hover:bg-indigo-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed">
             Inizia Configurazione
           </button>
         </div>
@@ -1686,29 +1353,19 @@ function TeamRegistrationView({ tournament, teams: initialTeams, currentTourname
         </div>
 
         <div className="bg-white p-8 rounded-[2.5rem] border border-slate-200 shadow-sm space-y-8">
-          {/* SELEZIONE DA ANAGRAFICA */}
           <div className="space-y-3">
             <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Seleziona Club dall'Anagrafica</label>
             <div className="relative">
               <select 
                 className="w-full p-5 bg-slate-50 rounded-2xl border border-slate-200 outline-none focus:ring-2 focus:ring-indigo-500 font-bold appearance-none cursor-pointer"
-                onChange={(e) => {
-                  if (e.target.value) {
-                    handleAddTeam(e.target.value);
-                    e.target.value = '';
-                  }
-                }}
+                onChange={(e) => { if (e.target.value) { handleAddTeam(e.target.value); e.target.value = ''; } }}
                 disabled={selectedTeams.length >= tournament.maxTeams}
               >
                 <option value="">Scegli un club...</option>
                 {localTeams.length === 0 ? (
                   <option disabled>Nessun club trovato</option>
                 ) : (
-                  localTeams.map((t: any) => (
-                    <option key={t.id} value={t.id}>
-                      {t.name || t.club_name || "Nome mancante"} 
-                    </option>
-                  ))
+                  localTeams.map((t: any) => <option key={t.id} value={t.id}>{t.name || t.club_name || "Nome mancante"}</option>)
                 )}
               </select>
               <div className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none">
@@ -1727,25 +1384,13 @@ function TeamRegistrationView({ tournament, teams: initialTeams, currentTourname
             <div className="relative flex justify-center text-[10px] font-black uppercase tracking-widest text-slate-300 bg-white px-4">Oppure crea club rapido</div>
           </div>
 
-          {/* CREAZIONE NUOVA SQUADRA */}
           <div className="flex gap-3">
-            <input 
-              placeholder="Nome Club"
-              className="flex-1 p-5 bg-slate-50 rounded-2xl border border-slate-200 outline-none focus:ring-2 focus:ring-indigo-500 font-bold"
-              value={name}
-              onChange={e => setName(e.target.value)}
-              disabled={selectedTeams.length >= tournament.maxTeams}
-            />
-            <button 
-              onClick={() => { if(name) { onCreateAndAddTeam({ name }); setName(''); } }}
-              disabled={!name || selectedTeams.length >= tournament.maxTeams}
-              className="bg-slate-900 text-white px-8 rounded-2xl font-black disabled:opacity-50 hover:bg-slate-800 transition-colors"
-            >
+            <input placeholder="Nome Club" className="flex-1 p-5 bg-slate-50 rounded-2xl border border-slate-200 outline-none focus:ring-2 focus:ring-indigo-500 font-bold" value={name} onChange={e => setName(e.target.value)} disabled={selectedTeams.length >= tournament.maxTeams} />
+            <button onClick={() => { if(name) { onCreateAndAddTeam({ name }); setName(''); } }} disabled={!name || selectedTeams.length >= tournament.maxTeams} className="bg-slate-900 text-white px-8 rounded-2xl font-black disabled:opacity-50 hover:bg-slate-800 transition-colors">
               Crea
             </button>
           </div>
 
-          {/* LISTA SQUADRE ISCRITTE */}
           <div className="space-y-4">
             <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400">Squadre Iscritte ({selectedTeams.length}/{tournament.maxTeams})</h3>
             <div className="divide-y divide-slate-100 bg-slate-50 rounded-2xl border border-slate-100 overflow-hidden">
@@ -1762,19 +1407,13 @@ function TeamRegistrationView({ tournament, teams: initialTeams, currentTourname
                   </button>
                 </div>
               ))}
-              {selectedTeams.length === 0 && (
-                <div className="p-10 text-center text-slate-400 text-sm italic">Nessuna squadra iscritta.</div>
-              )}
+              {selectedTeams.length === 0 && <div className="p-10 text-center text-slate-400 text-sm italic">Nessuna squadra iscritta.</div>}
             </div>
           </div>
 
-          <button 
-  disabled={!canGenerate}
-  onClick={() => onGenerate(selectedTeams)}
-  className="w-full bg-indigo-600 text-white font-black py-5 rounded-2xl shadow-2xl shadow-indigo-500/30 hover:bg-indigo-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
->
-  Genera Calendario <ChevronRight className="w-5 h-5" />
-</button>
+          <button disabled={!canGenerate} onClick={() => onGenerate(selectedTeams)} className="w-full bg-indigo-600 text-white font-black py-5 rounded-2xl shadow-2xl shadow-indigo-500/30 hover:bg-indigo-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3">
+            Genera Calendario <ChevronRight className="w-5 h-5" />
+          </button>
         </div>
       </div>
     </div>
@@ -1798,10 +1437,7 @@ function RosterView({ teams, players, onAddPlayer, onUpdatePlayer, onRemovePlaye
             <h1 className="text-2xl font-black text-slate-900 tracking-tight">Gestione Rose</h1>
             <p className="text-slate-400 text-sm">Configura i tesserati per ogni squadra del torneo.</p>
           </div>
-          <button 
-            onClick={onFinish}
-            className="bg-slate-900 text-white px-8 py-3 rounded-2xl font-black text-sm shadow-xl shadow-slate-900/20"
-          >
+          <button onClick={onFinish} className="bg-slate-900 text-white px-8 py-3 rounded-2xl font-black text-sm shadow-xl shadow-slate-900/20">
             Vai alla Dashboard
           </button>
         </div>
@@ -1813,11 +1449,7 @@ function RosterView({ teams, players, onAddPlayer, onUpdatePlayer, onRemovePlaye
             </div>
             <div className="divide-y divide-slate-100">
               {teams.map((t: any) => (
-                <button 
-                  key={t.id} 
-                  onClick={() => setSelectedTeamId(t.id)}
-                  className={`w-full p-4 text-left font-bold text-sm transition-all ${selectedTeamId === t.id ? 'bg-indigo-50 text-indigo-600 border-l-4 border-indigo-600' : 'text-slate-600 hover:bg-slate-50'}`}
-                >
+                <button key={t.id} onClick={() => setSelectedTeamId(t.id)} className={`w-full p-4 text-left font-bold text-sm transition-all ${selectedTeamId === t.id ? 'bg-indigo-50 text-indigo-600 border-l-4 border-indigo-600' : 'text-slate-600 hover:bg-slate-50'}`}>
                   {t.name}
                 </button>
               ))}
@@ -1830,47 +1462,18 @@ function RosterView({ teams, players, onAddPlayer, onUpdatePlayer, onRemovePlaye
                 <UserPlus className="w-5 h-5 text-indigo-600" /> {editingPlayerId ? 'Modifica Giocatore' : 'Nuovo Giocatore'}
               </h2>
               <div className="grid sm:grid-cols-3 gap-4">
-                <input 
-                  placeholder="Nome"
-                  className="p-4 bg-slate-50 rounded-2xl border border-slate-200 outline-none focus:ring-2 focus:ring-indigo-500 font-bold"
-                  value={name}
-                  onChange={e => setName(e.target.value)}
-                />
-                <input 
-                  type="number"
-                  placeholder="N°"
-                  className="p-4 bg-slate-50 rounded-2xl border border-slate-200 outline-none focus:ring-2 focus:ring-indigo-500 font-bold"
-                  value={number || ''}
-                  onChange={e => setNumber(parseInt(e.target.value) || 0)}
-                />
-                <input 
-                  placeholder="ID Tesserato"
-                  className="p-4 bg-slate-50 rounded-2xl border border-slate-200 outline-none focus:ring-2 focus:ring-indigo-500 font-bold"
-                  value={playerExternalId}
-                  onChange={e => setPlayerExternalId(e.target.value)}
-                />
+                <input placeholder="Nome" className="p-4 bg-slate-50 rounded-2xl border border-slate-200 outline-none focus:ring-2 focus:ring-indigo-500 font-bold" value={name} onChange={e => setName(e.target.value)} />
+                <input type="number" placeholder="N°" className="p-4 bg-slate-50 rounded-2xl border border-slate-200 outline-none focus:ring-2 focus:ring-indigo-500 font-bold" value={number || ''} onChange={e => setNumber(parseInt(e.target.value) || 0)} />
+                <input placeholder="ID Tesserato" className="p-4 bg-slate-50 rounded-2xl border border-slate-200 outline-none focus:ring-2 focus:ring-indigo-500 font-bold" value={playerExternalId} onChange={e => setPlayerExternalId(e.target.value)} />
               </div>
               <div className="flex gap-2">
                 {editingPlayerId ? (
                   <>
-                    <button 
-                      onClick={() => { onUpdatePlayer(editingPlayerId, { name, number, playerExternalId }); setEditingPlayerId(null); setName(''); setNumber(0); setPlayerExternalId(''); }}
-                      className="flex-1 bg-indigo-600 text-white font-black py-4 rounded-2xl hover:bg-indigo-700 transition-all"
-                    >
-                      Salva Modifiche
-                    </button>
-                    <button 
-                      onClick={() => { setEditingPlayerId(null); setName(''); setNumber(0); setPlayerExternalId(''); }}
-                      className="px-6 bg-slate-100 text-slate-400 font-black py-4 rounded-2xl hover:bg-slate-200 transition-all"
-                    >
-                      Annulla
-                    </button>
+                    <button onClick={() => { onUpdatePlayer(editingPlayerId, { name, number, playerExternalId }); setEditingPlayerId(null); setName(''); setNumber(0); setPlayerExternalId(''); }} className="flex-1 bg-indigo-600 text-white font-black py-4 rounded-2xl hover:bg-indigo-700 transition-all">Salva Modifiche</button>
+                    <button onClick={() => { setEditingPlayerId(null); setName(''); setNumber(0); setPlayerExternalId(''); }} className="px-6 bg-slate-100 text-slate-400 font-black py-4 rounded-2xl hover:bg-slate-200 transition-all">Annulla</button>
                   </>
                 ) : (
-                  <button 
-                    onClick={() => { onAddPlayer(selectedTeamId, name, number, playerExternalId); setName(''); setNumber(0); setPlayerExternalId(''); }}
-                    className="w-full bg-slate-900 text-white font-black py-4 rounded-2xl hover:bg-slate-800 transition-all"
-                  >
+                  <button onClick={() => { onAddPlayer(selectedTeamId, name, number, playerExternalId); setName(''); setNumber(0); setPlayerExternalId(''); }} className="w-full bg-slate-900 text-white font-black py-4 rounded-2xl hover:bg-slate-800 transition-all">
                     Aggiungi alla Rosa
                   </button>
                 )}
@@ -1886,26 +1489,17 @@ function RosterView({ teams, players, onAddPlayer, onUpdatePlayer, onRemovePlaye
                 {teamPlayers.map((p: any) => (
                   <div key={p.id} className="p-4 flex items-center justify-between group hover:bg-slate-50 transition-colors">
                     <div className="flex items-center gap-4">
-                      <div className="w-10 h-10 bg-indigo-50 rounded-full flex items-center justify-center text-indigo-600 font-black text-xs">
-                        {p.number}
-                      </div>
+                      <div className="w-10 h-10 bg-indigo-50 rounded-full flex items-center justify-center text-indigo-600 font-black text-xs">{p.number}</div>
                       <div>
                         <div className="font-bold text-slate-800">{p.name}</div>
                         <div className="text-[10px] font-bold text-slate-400 uppercase">ID: {p.playerExternalId}</div>
                       </div>
                     </div>
                     <div className="flex gap-2">
-                      <select 
-                        className="text-[10px] font-black uppercase tracking-widest bg-slate-100 rounded-lg px-2 outline-none border-none focus:ring-0"
-                        value={p.teamId}
-                        onChange={(e) => onUpdatePlayer(p.id, { teamId: e.target.value })}
-                      >
+                      <select className="text-[10px] font-black uppercase tracking-widest bg-slate-100 rounded-lg px-2 outline-none border-none focus:ring-0" value={p.teamId} onChange={(e) => onUpdatePlayer(p.id, { teamId: e.target.value })}>
                         {teams.map((t: any) => <option key={t.id} value={t.id}>{t.name}</option>)}
                       </select>
-                      <button 
-                        onClick={() => { setEditingPlayerId(p.id); setName(p.name); setNumber(p.number); setPlayerExternalId(p.playerExternalId); }}
-                        className="p-2 text-slate-300 hover:text-indigo-600 transition-colors"
-                      >
+                      <button onClick={() => { setEditingPlayerId(p.id); setName(p.name); setNumber(p.number); setPlayerExternalId(p.playerExternalId); }} className="p-2 text-slate-300 hover:text-indigo-600 transition-colors">
                         <Settings className="w-4 h-4" />
                       </button>
                       <button onClick={() => onRemovePlayer(p.id)} className="p-2 text-slate-300 hover:text-red-500 transition-colors">
@@ -1922,7 +1516,3 @@ function RosterView({ teams, players, onAddPlayer, onUpdatePlayer, onRemovePlaye
     </div>
   );
 }
-
-
-
-
