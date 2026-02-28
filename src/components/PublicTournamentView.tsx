@@ -1,8 +1,8 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { Trophy, Calendar, Users, Award, LayoutDashboard, ShieldCheck, AlertCircle, Share2, ChevronRight } from 'lucide-react';
+import { Trophy, Calendar, Users, Award, LayoutDashboard, AlertCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { fetchTournamentData, supabase } from '../utils/supabase';
+import { supabase } from '../utils/supabase';
 import { StandingsTable } from './StandingsTable';
 import { ScorerTable } from './ScorerTable';
 import { AssistTable } from './AssistTable';
@@ -23,7 +23,7 @@ interface Match {
   scoreB: number;
   status: 'scheduled' | 'finished';
   round: number;
-  matchType: 'league_match' | 'bracket_match';
+  matchType: string;
   isReturnMatch: boolean;
   nextMatchId?: string;
   positionInRound?: number;
@@ -33,7 +33,7 @@ interface MatchEvent {
   id: string;
   matchId: string;
   playerId: string;
-  type: 'goal' | 'assist';
+  type: string;
 }
 
 interface Tournament {
@@ -72,7 +72,7 @@ export function PublicTournamentView() {
   const loadData = async () => {
     try {
       setLoading(true);
-      // Fetch tournament basic info
+
       const { data: tData, error: tError } = await supabase
         .from('tournaments')
         .select('*')
@@ -94,48 +94,86 @@ export function PublicTournamentView() {
         status: tData.status
       });
 
-      const data = await fetchTournamentData(tournamentId!);
-      
-      setTeams(data.teams.map((t: any) => ({
-        id: t.id,
-        name: t.name,
-        logoUrl: t.logo_url,
-        colors: t.colors
-      })));
+      const { data: ttData } = await supabase
+        .from('tournament_teams')
+        .select('*')
+        .eq('tournament_id', tournamentId);
 
-      setPlayers(data.teams.flatMap((t: any) => 
-        (t.players || []).map((p: any) => ({
-          id: p.id,
-          teamId: p.team_id,
-          name: p.name,
-          number: p.number,
-          playerExternalId: p.player_external_id
-        }))
-      ));
+      const teamIds = ttData?.map((tt: any) => tt.club_id) || [];
 
-      setMatches(data.matches.map((m: any) => ({
-        id: m.id,
-        tournamentId: m.tournament_id,
-        teamAId: m.team_a_id,
-        teamBId: m.team_b_id,
-        scoreA: m.score_a,
-        scoreB: m.score_b,
-        status: m.status,
-        round: m.round,
-        matchType: m.match_type,
-        isReturnMatch: m.is_return_match,
-        nextMatchId: m.next_match_id,
-        positionInRound: m.position_in_round
-      })));
+      if (teamIds.length > 0) {
+        const { data: teamsData } = await supabase
+          .from('teams')
+          .select('*')
+          .in('id', teamIds);
 
-      setEvents(data.events.map((e: any) => ({
-        id: e.id,
-        matchId: e.match_id,
-        playerId: e.player_id,
-        type: e.event_type
-      })));
+        if (teamsData) {
+          setTeams(teamsData.map((t: any) => ({
+            id: t.id,
+            name: t.name,
+            logoUrl: t.logo_url,
+            colors: t.colors
+          })));
+        }
+
+        const { data: playersData } = await supabase
+          .from('players')
+          .select('*')
+          .in('team_id', teamIds);
+
+        if (playersData) {
+          setPlayers(playersData.map((p: any) => ({
+            id: p.id,
+            teamId: p.team_id,
+            name: p.name,
+            number: p.number,
+            playerExternalId: p.player_external_id
+          })));
+        }
+      }
+
+      const { data: matchesData } = await supabase
+        .from('matches')
+        .select('*')
+        .eq('tournament_id', tournamentId)
+        .order('round', { ascending: true });
+
+      if (matchesData) {
+        setMatches(matchesData.map((m: any) => ({
+          id: m.id,
+          tournamentId: m.tournament_id,
+          teamAId: m.team_a_id,
+          teamBId: m.team_b_id,
+          scoreA: m.score_a,
+          scoreB: m.score_b,
+          status: m.status,
+          round: m.round,
+          matchType: m.match_type,
+          isReturnMatch: m.is_return_match,
+          nextMatchId: m.next_match_id,
+          positionInRound: m.position_in_round
+        })));
+
+        const matchIds = matchesData.map((m: any) => m.id);
+        if (matchIds.length > 0) {
+          const { data: eventsData } = await supabase
+            .from('match_events')
+            .select('*')
+            .in('match_id', matchIds);
+
+          if (eventsData) {
+            setEvents(eventsData.map((e: any) => ({
+              id: e.id,
+              matchId: e.match_id,
+              playerId: e.player_id,
+              type: e.event_type
+            })));
+          }
+        }
+      }
 
       if (tData.type === 'knockout') setActiveTab('bracket');
+
     } catch (err: any) {
       console.error('Error loading public tournament:', err);
       setError('Impossibile caricare i dati del torneo.');
@@ -174,7 +212,7 @@ export function PublicTournamentView() {
   const scorerStats = useMemo(() => {
     const stats: Record<string, { goals: number; name: string; team: string }> = {};
     events
-      .filter(e => e.type === 'goal')
+      .filter(e => e.type === 'gol')
       .forEach(e => {
         const player = players.find(p => p.id === e.playerId);
         if (!player) return;
@@ -200,9 +238,6 @@ export function PublicTournamentView() {
       });
     return Object.values(stats).sort((a, b) => b.assists - a.assists);
   }, [events, players, teams]);
-
-  // Actually, I should fetch players too in loadData
-  // Let's update loadData to fetch players for the teams in the tournament
 
   if (loading) {
     return (
@@ -234,7 +269,6 @@ export function PublicTournamentView() {
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 font-sans pb-24">
-      {/* Public Navbar */}
       <nav className="bg-slate-900 text-white p-4 sticky top-0 z-50 shadow-xl border-b border-slate-800">
         <div className="max-w-4xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -243,27 +277,25 @@ export function PublicTournamentView() {
             </div>
             <h1 className="font-bold text-lg tracking-tight uppercase">{tournament.name}</h1>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="flex gap-1 bg-slate-800 p-1 rounded-xl">
-              {[
-                { id: 'matches', icon: Calendar, label: 'Partite', show: tournament.type === 'league' },
-                { id: 'bracket', icon: LayoutDashboard, label: 'Tabellone', show: tournament.type === 'knockout' },
-                { id: 'standings', icon: Users, label: 'Classifica', show: tournament.type === 'league' },
-                { id: 'scorers', icon: Award, label: 'Marcatori', show: true },
-                { id: 'assists', icon: Award, label: 'Assist', show: true },
-              ].filter(t => t.show).map(tab => (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id as any)}
-                  className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                    activeTab === tab.id ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white'
-                  }`}
-                >
-                  <tab.icon className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">{tab.label}</span>
-                </button>
-              ))}
-            </div>
+          <div className="flex gap-1 bg-slate-800 p-1 rounded-xl">
+            {[
+              { id: 'matches', icon: Calendar, label: 'Partite', show: tournament.type === 'league' },
+              { id: 'bracket', icon: LayoutDashboard, label: 'Tabellone', show: tournament.type === 'knockout' },
+              { id: 'standings', icon: Users, label: 'Classifica', show: tournament.type === 'league' },
+              { id: 'scorers', icon: Award, label: 'Marcatori', show: true },
+              { id: 'assists', icon: Award, label: 'Assist', show: true },
+            ].filter(t => t.show).map(tab => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id as any)}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                  activeTab === tab.id ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                <tab.icon className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">{tab.label}</span>
+              </button>
+            ))}
           </div>
         </div>
       </nav>
@@ -277,29 +309,19 @@ export function PublicTournamentView() {
                 .map(roundNum => {
                   const roundMatches = matches.filter(m => m.round === roundNum);
                   const isReturn = roundMatches[0]?.isReturnMatch;
-                  
                   return (
                     <div key={roundNum} className="space-y-4">
                       <div className="flex items-center gap-4 px-2">
-                        <h2 className="text-sm font-black uppercase tracking-[0.2em] text-indigo-600">
-                          Giornata {roundNum}
-                        </h2>
+                        <h2 className="text-sm font-black uppercase tracking-[0.2em] text-indigo-600">Giornata {roundNum}</h2>
                         <div className="h-px bg-slate-200 flex-1" />
-                        {isReturn && (
-                          <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 bg-slate-100 px-2 py-1 rounded-md">
-                            Ritorno
-                          </span>
-                        )}
+                        {isReturn && <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 bg-slate-100 px-2 py-1 rounded-md">Ritorno</span>}
                       </div>
                       <div className="grid gap-4">
                         {roundMatches.map(match => {
                           const teamA = teams.find(t => t.id === match.teamAId);
                           const teamB = teams.find(t => t.id === match.teamBId);
                           return (
-                            <div 
-                              key={match.id} 
-                              className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200"
-                            >
+                            <div key={match.id} className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
                               <div className="flex items-center justify-between">
                                 <div className="flex-1 text-right font-bold text-slate-700 truncate">{teamA?.name}</div>
                                 <div className="flex items-center gap-4 px-6">
@@ -344,10 +366,7 @@ export function PublicTournamentView() {
                             const teamA = teams.find(t => t.id === match.teamAId);
                             const teamB = teams.find(t => t.id === match.teamBId);
                             return (
-                              <div 
-                                key={match.id} 
-                                className="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 w-64 space-y-2"
-                              >
+                              <div key={match.id} className="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 w-64 space-y-2">
                                 <div className="flex justify-between items-center">
                                   <span className={`text-sm font-bold truncate flex-1 ${match.status === 'finished' && match.scoreA > match.scoreB ? 'text-indigo-600' : 'text-slate-600'}`}>
                                     {teamA?.name || '---'}
@@ -385,7 +404,6 @@ export function PublicTournamentView() {
         </AnimatePresence>
       </main>
 
-      {/* Footer */}
       <footer className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-100 p-4 text-center">
         <p className="text-[10px] font-black uppercase tracking-widest text-slate-300">
           Powered by Tournament Master • Pagina Pubblica
