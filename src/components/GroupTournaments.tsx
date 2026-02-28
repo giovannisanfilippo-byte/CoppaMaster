@@ -690,9 +690,8 @@ export const GroupTournaments = ({ onBack, onTournamentCreated, existingTourname
   </button>
   <button onClick={() => setSelectedMatch(null)} className="bg-blue-600 text-white px-8 py-3 rounded-2xl font-black text-sm hover:bg-blue-700 transition-all">Chiudi</button>
 </div>
-          </div>
-        </div>
-      )}
     </div>
-  );
-};
+  </div>
+</div>
+    );
+  };
