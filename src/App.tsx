@@ -683,6 +683,23 @@ function PrivateApp() {
     }
   };
 
+  const resetMatch = async (matchId: string) => {
+    try {
+      // Elimina tutti gli eventi della partita dal DB
+      const matchEvents = events.filter(e => e.matchId === matchId);
+      for (const event of matchEvents) {
+        await supabase.from('match_events').delete().eq('id', event.id);
+      }
+      // Riporta il match a scheduled con 0-0
+      await supabase.from('matches').update({ score_a: 0, score_b: 0, status: 'scheduled' }).eq('id', matchId);
+      // Aggiorna stato locale
+      setEvents(events.filter(e => e.matchId !== matchId));
+      setMatches(matches.map(m => m.id === matchId ? { ...m, scoreA: 0, scoreB: 0, status: 'scheduled' } : m));
+    } catch (error) {
+      console.error('Error resetting match:', error);
+    }
+  };
+
   const updateMatchScore = async (matchId: string, scoreA: number, scoreB: number) => {
     try {
       await updateMatchScoreDB(matchId, scoreA, scoreB);
