@@ -1258,15 +1258,16 @@ if (view === 'teams') {
       <AnimatePresence>
         {selectedMatchId && (
           <MatchReportForm 
-            match={matches.find(m => m.id === selectedMatchId)!}
-            teams={teams}
-            players={players}
-            events={events.filter(e => e.matchId === selectedMatchId)}
-            onUpdateScore={(sA, sB) => updateMatchScore(selectedMatchId, sA, sB)}
-            onAddEvent={(pId, type) => addMatchEvent(selectedMatchId, pId, type)}
-            onRemoveEvent={removeMatchEvent}
-            onClose={() => setSelectedMatchId(null)}
-          />
+  match={matches.find(m => m.id === selectedMatchId)!}
+  teams={teams}
+  players={players}
+  events={events.filter(e => e.matchId === selectedMatchId)}
+  onUpdateScore={(sA, sB) => updateMatchScore(selectedMatchId, sA, sB)}
+  onAddEvent={(pId, type) => addMatchEvent(selectedMatchId, pId, type)}
+  onRemoveEvent={removeMatchEvent}
+  onResetMatch={() => resetMatch(selectedMatchId!)}
+  onClose={() => setSelectedMatchId(null)}
+/>
         )}
       </AnimatePresence>
 
