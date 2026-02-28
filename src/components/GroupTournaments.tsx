@@ -376,8 +376,20 @@ export const GroupTournaments = ({ onBack, onTournamentCreated, existingTourname
             <Trophy className="w-8 h-8 text-blue-600" />
             <h1 className="text-2xl font-black text-slate-900 uppercase">Configurazione Gironi</h1>
           </div>
-          <div className="w-24"></div>
-        </div>
+          <div className="w-24 flex justify-end">
+  {tournamentId && (
+    <button
+      onClick={() => {
+        const publicUrl = `${window.location.origin}/public/${tournamentId}`;
+        navigator.clipboard.writeText(publicUrl);
+        alert('Link pubblico copiato negli appunti!');
+      }}
+      className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-2xl font-black text-xs hover:bg-indigo-700 transition-all"
+    >
+      <Share2 className="w-4 h-4" /> Condividi
+    </button>
+  )}
+</div>
 
         {groups.length === 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
