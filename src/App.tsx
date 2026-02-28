@@ -29,6 +29,7 @@ interface Tournament {
   type: TournamentType;
   maxTeams: number;
   status: TournamentStatus;
+  logoUrl?: string;
 }
 
 interface Team {
@@ -257,12 +258,13 @@ const [selectedRound, setSelectedRound] = useState<number | null>(null);
     if (!user) return;
     try {
       const newTournamentData = {
-        name,
-        type,
-        max_teams: maxTeams,
-        status: 'attivo',
-        user_id: user.id
-      };
+  name,
+  type,
+  max_teams: maxTeams,
+  status: 'attivo',
+  user_id: user.id,
+  logo_url: logoUrl || null
+};
       
       const savedTournament = await saveTournament(newTournamentData);
       
@@ -1506,7 +1508,12 @@ function HomeView({ tournaments, onSelect, onCreate, onDelete, onToggleStatus, s
                   </button>
                 </div>
               </div>
-              <h3 className="text-xl font-black text-slate-900 mb-1">{t.name}</h3>
+              <div className="flex items-center gap-3 mb-1">
+  {t.logoUrl && (
+    <img src={t.logoUrl} alt="Logo" className="w-10 h-10 rounded-xl object-cover border border-slate-100" />
+  )}
+  <h3 className="text-xl font-black text-slate-900">{t.name}</h3>
+</div>
               <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-6">{t.type === 'league' ? 'Campionato' : 'Eliminazione'} • {t.maxTeams} Squadre</p>
               <button 
                 onClick={() => onSelect(t.id)}
@@ -1522,10 +1529,21 @@ function HomeView({ tournaments, onSelect, onCreate, onDelete, onToggleStatus, s
   );
 }
 
-function SetupView({ onCreate, onBack }: { onCreate: (name: string, type: TournamentType, maxTeams: number) => void, onBack: () => void }) {
+function SetupView({ onCreate, onBack }: { onCreate: (name: string, type: TournamentType, maxTeams: number, logoUrl?: string) => void, onBack: () => void }) {
   const [name, setName] = useState('');
   const [type, setType] = useState<TournamentType>('league');
   const [maxTeams, setMaxTeams] = useState(8);
+  const [logoPreview, setLogoPreview] = useState<string | null>(null);
+
+  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setLogoPreview(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
 
   return (
     <div className="min-h-screen bg-slate-900 flex items-center justify-center p-6">
@@ -1548,6 +1566,29 @@ function SetupView({ onCreate, onBack }: { onCreate: (name: string, type: Tourna
         </div>
 
         <div className="space-y-6">
+          {/* Logo Upload */}
+          <div className="space-y-2">
+            <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Logo Torneo (opzionale)</label>
+            <div className="flex items-center gap-4">
+              <div className="w-16 h-16 rounded-2xl border-2 border-dashed border-slate-200 flex items-center justify-center overflow-hidden bg-slate-50">
+                {logoPreview ? (
+                  <img src={logoPreview} alt="Logo" className="w-full h-full object-cover" />
+                ) : (
+                  <Trophy className="w-6 h-6 text-slate-300" />
+                )}
+              </div>
+              <label className="cursor-pointer bg-slate-100 hover:bg-slate-200 text-slate-600 font-black text-xs px-4 py-3 rounded-2xl transition-all">
+                Carica Immagine
+                <input type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} />
+              </label>
+              {logoPreview && (
+                <button onClick={() => setLogoPreview(null)} className="text-red-400 hover:text-red-600 text-xs font-bold">
+                  Rimuovi
+                </button>
+              )}
+            </div>
+          </div>
+
           <div className="space-y-2">
             <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Nome Torneo</label>
             <input 
@@ -1584,7 +1625,7 @@ function SetupView({ onCreate, onBack }: { onCreate: (name: string, type: Tourna
 
           <button 
             disabled={!name}
-            onClick={() => onCreate(name, type, maxTeams)}
+            onClick={() => onCreate(name, type, maxTeams, logoPreview || undefined)}
             className="w-full bg-indigo-600 text-white font-black py-4 rounded-2xl shadow-xl shadow-indigo-500/30 hover:bg-indigo-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Inizia Configurazione
