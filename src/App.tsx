@@ -103,18 +103,13 @@ function PrivateApp() {
   const [isReplaceTeamOpen, setIsReplaceTeamOpen] = useState(false);
   const [replaceOldTeamId, setReplaceOldTeamId] = useState('');
   const [replaceNewTeamId, setReplaceNewTeamId] = useState('');
-  const [confirmModal, setConfirmModal] = useState<{ 
-  const [selectedRound, setSelectedRound] = useState<number | null>(null);
-    isOpen: boolean; 
-    title: string; 
-    message: string; 
-    onConfirm: () => void; 
-  }>({
-    isOpen: false,
-    title: '',
-    message: '',
-    onConfirm: () => {}
-  });
+  const [confirmModal, setConfirmModal] = useState<{
+  isOpen: boolean;
+  title: string;
+  message: string;
+  onConfirm: () => void;
+}>({ isOpen: false, title: '', message: '', onConfirm: () => {} });
+const [selectedRound, setSelectedRound] = useState<number | null>(null);
 
   // --- Auth & Data Fetching ---
   useEffect(() => {
