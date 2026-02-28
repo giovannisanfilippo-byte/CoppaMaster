@@ -669,9 +669,15 @@ export const GroupTournaments = ({ onBack, onTournamentCreated, existingTourname
                 ))}
               </div>
             </div>
-            <div className="p-4 border-t border-slate-100 bg-slate-50 flex justify-end">
-              <button onClick={() => setSelectedMatch(null)} className="bg-blue-600 text-white px-8 py-3 rounded-2xl font-black text-sm hover:bg-blue-700 transition-all">Chiudi</button>
-            </div>
+            <div className="p-4 border-t border-slate-100 bg-slate-50 flex justify-between items-center">
+  <button 
+    onClick={() => { if (window.confirm('Sei sicuro di voler resettare il risultato e tutti i marcatori?')) resetMatch(selectedMatch); }}
+    className="flex items-center gap-2 px-4 py-2 text-red-500 hover:bg-red-50 rounded-xl text-xs font-bold transition-all"
+  >
+    <X className="w-3.5 h-3.5" /> Resetta Risultato
+  </button>
+  <button onClick={() => setSelectedMatch(null)} className="bg-blue-600 text-white px-8 py-3 rounded-2xl font-black text-sm hover:bg-blue-700 transition-all">Chiudi</button>
+</div>
           </div>
         </div>
       )}
