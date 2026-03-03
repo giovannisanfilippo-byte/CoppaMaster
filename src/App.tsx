@@ -111,6 +111,7 @@ function PrivateApp() {
     onConfirm: () => void;
   }>({ isOpen: false, title: '', message: '', onConfirm: () => {} });
   const [selectedRound, setSelectedRound] = useState<number | null>(null);
+  const [leagueMatchMode, setLeagueMatchMode] = useState<'andata' | 'andata_ritorno'>('andata_ritorno');
 
   // --- Auth & Data Fetching ---
   useEffect(() => {
@@ -250,7 +251,7 @@ function PrivateApp() {
   }, [teams, tournamentTeams, activeTournamentId]);
 
   // --- Handlers: Setup ---
-  const handleCreateTournament = async (name: string, type: TournamentType, maxTeams: number, logoUrl?: string) => {
+  const handleCreateTournament = async (name: string, type: TournamentType, maxTeams: number, logoUrl?: string, matchMode: 'andata' | 'andata_ritorno' = 'andata_ritorno') => {
     if (!user) return;
     try {
       const newTournamentData = {
@@ -275,6 +276,7 @@ function PrivateApp() {
 
       setTournaments([...tournaments, newTournament]);
       setActiveTournamentId(newTournament.id);
+      setLeagueMatchMode(matchMode);
       setView('teams');
       setActiveTab(type === 'knockout' ? 'bracket' : 'matches');
     } catch (error) {
@@ -440,32 +442,40 @@ if (manualMatchups && manualMatchups.length > 0) {
     const numTeams = teamIds.length;
     const roundsPerLeg = numTeams - 1;
 
-    for (let leg = 0; leg < 2; leg++) {
-      for (let r = 0; r < roundsPerLeg; r++) {
-        const roundNumber = leg === 0 ? r + 1 : roundsPerLeg + r + 1;
-        for (let i = 0; i < numTeams / 2; i++) {
-          const teamA = teamIds[i];
-          const teamB = teamIds[numTeams - 1 - i];
-          if (teamA !== 'BYE' && teamB !== 'BYE') {
-            newMatches.push({
-              id: '',
-              tournamentId: activeTournamentId!,
-              teamAId: leg === 0 ? teamA : teamB,
-              teamBId: leg === 0 ? teamB : teamA,
-              scoreA: 0, 
-              scoreB: 0, 
-              status: 'scheduled', 
-              round: roundNumber, 
-              matchType: 'league_match',
-              isReturnMatch: leg === 1
-            });
-          }
+    const generateLeagueCalendar = (currentTeams: Team[]): Match[] => {
+  const newMatches: Match[] = [];
+  const teamIds = currentTeams.map(t => t.id);
+  if (teamIds.length % 2 !== 0) teamIds.push('BYE');
+  const numTeams = teamIds.length;
+  const roundsPerLeg = numTeams - 1;
+  const legs = leagueMatchMode === 'andata' ? 1 : 2;
+
+  for (let leg = 0; leg < legs; leg++) {
+    for (let r = 0; r < roundsPerLeg; r++) {
+      const roundNumber = leg === 0 ? r + 1 : roundsPerLeg + r + 1;
+      for (let i = 0; i < numTeams / 2; i++) {
+        const teamA = teamIds[i];
+        const teamB = teamIds[numTeams - 1 - i];
+        if (teamA !== 'BYE' && teamB !== 'BYE') {
+          newMatches.push({
+            id: '',
+            tournamentId: activeTournamentId!,
+            teamAId: leg === 0 ? teamA : teamB,
+            teamBId: leg === 0 ? teamB : teamA,
+            scoreA: 0,
+            scoreB: 0,
+            status: 'scheduled',
+            round: roundNumber,
+            matchType: 'league_match',
+            isReturnMatch: leg === 1
+          });
         }
-        teamIds.splice(1, 0, teamIds.pop()!);
       }
+      teamIds.splice(1, 0, teamIds.pop()!);
     }
-    return newMatches;
-  };
+  }
+  return newMatches;
+};
 
   const updateTournamentStatus = (id: string, status: TournamentStatus) => {
     setTournaments(tournaments.map(t => t.id === id ? { ...t, status } : t));
@@ -1215,11 +1225,12 @@ function HomeView({ tournaments, onSelect, onCreate, onDelete, onToggleStatus, s
   );
 }
 
-function SetupView({ onCreate, onBack }: { onCreate: (name: string, type: TournamentType, maxTeams: number, logoUrl?: string) => void, onBack: () => void }) {
+function SetupView({ onCreate, onBack }: { onCreate: (name: string, type: TournamentType, maxTeams: number, logoUrl?: string, matchMode?: 'andata' | 'andata_ritorno') => void, onBack: () => void }) {
   const [name, setName] = useState('');
   const [type, setType] = useState<TournamentType>('league');
   const [maxTeams, setMaxTeams] = useState(8);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  const [matchMode, setMatchMode] = useState<'andata' | 'andata_ritorno'>('andata_ritorno');
 
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -1305,6 +1316,30 @@ function SetupView({ onCreate, onBack }: { onCreate: (name: string, type: Tourna
               <input type="number" className="w-full p-4 bg-slate-50 rounded-2xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none font-bold" value={maxTeams} onChange={e => setMaxTeams(parseInt(e.target.value) || 2)} />
             </div>
           </div>
+
+          {type === 'league' && (
+            <div className="space-y-2">
+              <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Tipo Partite</label>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  onClick={() => setMatchMode('andata')}
+                  className={`p-4 rounded-2xl border-2 font-black text-sm transition-all ${matchMode === 'andata' ? 'border-indigo-600 bg-indigo-50 text-indigo-600' : 'border-slate-200 text-slate-400 hover:border-slate-300'}`}
+                >
+                  ➡️ Solo Andata
+                </button>
+                <button
+                  onClick={() => setMatchMode('andata_ritorno')}
+                  className={`p-4 rounded-2xl border-2 font-black text-sm transition-all ${matchMode === 'andata_ritorno' ? 'border-indigo-600 bg-indigo-50 text-indigo-600' : 'border-slate-200 text-slate-400 hover:border-slate-300'}`}
+                >
+                  🔄 Andata e Ritorno
+                </button>
+              </div>
+            </div>
+          )}
+
+          <button disabled={!name} onClick={() => onCreate(name, type, maxTeams, logoPreview || undefined, matchMode)} className="w-full bg-indigo-600 text-white font-black py-4 rounded-2xl shadow-xl shadow-indigo-500/30 hover:bg-indigo-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed">
+  Inizia Configurazione
+</button>
 
           <button disabled={!name} onClick={() => onCreate(name, type, maxTeams, logoPreview || undefined)} className="w-full bg-indigo-600 text-white font-black py-4 rounded-2xl shadow-xl shadow-indigo-500/30 hover:bg-indigo-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed">
             Inizia Configurazione
