@@ -435,13 +435,6 @@ if (manualMatchups && manualMatchups.length > 0) {
     }
   };
 
-  const generateLeagueCalendar = (currentTeams: Team[]): Match[] => {
-    const newMatches: Match[] = [];
-    const teamIds = currentTeams.map(t => t.id);
-    if (teamIds.length % 2 !== 0) teamIds.push('BYE');
-    const numTeams = teamIds.length;
-    const roundsPerLeg = numTeams - 1;
-
     const generateLeagueCalendar = (currentTeams: Team[]): Match[] => {
   const newMatches: Match[] = [];
   const teamIds = currentTeams.map(t => t.id);
