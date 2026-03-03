@@ -1676,4 +1676,3 @@ function RosterView({ teams, players, onAddPlayer, onUpdatePlayer, onRemovePlaye
     </div>
   );
 }
-}
