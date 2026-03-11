@@ -277,7 +277,7 @@ export function PublicTournamentView() {
             </div>
             <h1 className="font-bold text-lg tracking-tight uppercase">{tournament.name}</h1>
           </div>
-          <div className="flex gap-1 bg-slate-800 p-1 rounded-xl">
+          <div className="flex gap-1 bg-slate-800 p-1 rounded-xl overflow-x-auto">
             {[
               { id: 'matches', icon: Calendar, label: 'Partite', show: tournament.type === 'league' },
               { id: 'bracket', icon: LayoutDashboard, label: 'Tabellone', show: tournament.type === 'knockout' },
@@ -303,8 +303,9 @@ export function PublicTournamentView() {
 
       <main className="max-w-4xl mx-auto p-4 mt-4">
         <AnimatePresence mode="wait">
+
           {activeTab === 'matches' && (
-            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-12">
+            <motion.div key="matches" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-12">
               {Array.from(new Set(matches.map(m => m.round)))
                 .sort((a: number, b: number) => a - b)
                 .map(roundNum => {
@@ -351,7 +352,7 @@ export function PublicTournamentView() {
           )}
 
           {activeTab === 'bracket' && tournament.type === 'knockout' && (
-            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="overflow-x-auto pb-8">
+            <motion.div key="bracket" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="overflow-x-auto pb-8">
               <div className="flex gap-12 min-w-max p-4">
                 {[16, 8, 4, 2].filter(r => matches.some(m => m.round === r))
                   .sort((a, b) => b - a)
@@ -392,24 +393,28 @@ export function PublicTournamentView() {
           )}
 
           {activeTab === 'scorers' && (
-            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-6">
+            <motion.div key="scorers" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-6">
               <ScorerTable stats={scorerStats} />
             </motion.div>
           )}
 
           {activeTab === 'assists' && (
-            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-6">
+            <motion.div key="assists" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-6">
               <AssistTable stats={assistStats} />
             </motion.div>
-      {activeTab === 'rose' && (
-            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-6">
+          )}
+
+          {activeTab === 'rose' && (
+            <motion.div key="rose" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-6">
               {teams.map(team => {
                 const teamPlayers = players.filter(p => p.teamId === team.id).sort((a, b) => a.number - b.number);
                 return (
                   <div key={team.id} className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
                     <div className="p-4 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
                       <div className="flex items-center gap-3">
-                        {team.logoUrl && <img src={team.logoUrl} alt="logo" className="w-8 h-8 rounded-lg object-cover border border-slate-200" />}
+                        {team.logoUrl && (
+                          <img src={team.logoUrl} alt="logo" className="w-8 h-8 rounded-lg object-cover border border-slate-200" />
+                        )}
                         <h3 className="font-black text-slate-900 uppercase tracking-wide text-sm">{team.name}</h3>
                       </div>
                       <span className="bg-indigo-100 text-indigo-600 text-xs font-black px-3 py-1 rounded-full">
@@ -440,7 +445,7 @@ export function PublicTournamentView() {
               })}
             </motion.div>
           )}
-          )}
+
         </AnimatePresence>
       </main>
 
