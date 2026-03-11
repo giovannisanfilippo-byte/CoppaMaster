@@ -61,7 +61,7 @@ export function PublicTournamentView() {
   const [events, setEvents] = useState<MatchEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'matches' | 'standings' | 'scorers' | 'assists' | 'bracket'>('matches');
+  const [activeTab, setActiveTab] = useState<'matches' | 'standings' | 'scorers' | 'assists' | 'bracket' | 'rose'>('matches');
 
   useEffect(() => {
     if (tournamentId) {
@@ -284,6 +284,7 @@ export function PublicTournamentView() {
               { id: 'standings', icon: Users, label: 'Classifica', show: tournament.type === 'league' },
               { id: 'scorers', icon: Award, label: 'Marcatori', show: true },
               { id: 'assists', icon: Award, label: 'Assist', show: true },
+              { id: 'rose', icon: Users, label: 'Rose', show: true },
             ].filter(t => t.show).map(tab => (
               <button
                 key={tab.id}
@@ -400,6 +401,45 @@ export function PublicTournamentView() {
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-6">
               <AssistTable stats={assistStats} />
             </motion.div>
+      {activeTab === 'rose' && (
+            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-6">
+              {teams.map(team => {
+                const teamPlayers = players.filter(p => p.teamId === team.id).sort((a, b) => a.number - b.number);
+                return (
+                  <div key={team.id} className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                    <div className="p-4 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        {team.logoUrl && <img src={team.logoUrl} alt="logo" className="w-8 h-8 rounded-lg object-cover border border-slate-200" />}
+                        <h3 className="font-black text-slate-900 uppercase tracking-wide text-sm">{team.name}</h3>
+                      </div>
+                      <span className="bg-indigo-100 text-indigo-600 text-xs font-black px-3 py-1 rounded-full">
+                        {teamPlayers.length} giocatori
+                      </span>
+                    </div>
+                    {teamPlayers.length === 0 ? (
+                      <div className="p-6 text-center text-slate-400 text-sm italic">Nessun giocatore registrato.</div>
+                    ) : (
+                      <div className="divide-y divide-slate-100">
+                        {teamPlayers.map(player => (
+                          <div key={player.id} className="px-4 py-3 flex items-center justify-between hover:bg-slate-50 transition-colors">
+                            <div className="flex items-center gap-3">
+                              <div className="w-8 h-8 bg-indigo-50 rounded-full flex items-center justify-center text-indigo-600 font-black text-xs">
+                                {player.number}
+                              </div>
+                              <span className="font-bold text-slate-700">{player.name}</span>
+                            </div>
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                              ID: {player.playerExternalId}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </motion.div>
+          )}
           )}
         </AnimatePresence>
       </main>
