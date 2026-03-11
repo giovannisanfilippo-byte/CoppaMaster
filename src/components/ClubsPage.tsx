@@ -8,11 +8,20 @@ export const ClubsPage = () => {
   const [clubs, setClubs] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
+  const [playerCounts, setPlayerCounts] = useState<Record<string, number>>({});
 
   const fetchClubs = async () => {
-    const { data } = await supabase.from('teams').select('*').order('name', { ascending: true });
-    if (data) setClubs(data);
-  };
+  const { data } = await supabase.from('teams').select('*').order('name', { ascending: true });
+  if (data) setClubs(data);
+  const { data: playersData } = await supabase.from('players').select('team_id');
+  if (playersData) {
+    const counts: Record<string, number> = {};
+    playersData.forEach((p: any) => {
+      counts[p.team_id] = (counts[p.team_id] || 0) + 1;
+    });
+    setPlayerCounts(counts);
+  }
+};
 
   useEffect(() => { fetchClubs(); }, []);
 
@@ -147,8 +156,12 @@ export const ClubsPage = () => {
             <div style={{ height: '80px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               {c.logo_url ? <img src={c.logo_url} style={{ maxHeight: '100%', maxWidth: '100%', objectFit: 'contain' }} alt="logo" /> : "⚽"}
             </div>
-            <h3 style={{ fontSize: '16px', marginTop: '12px' }}>{c.name}</h3>
-          </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '12px', paddingLeft: '4px', paddingRight: '4px' }}>
+  <h3 style={{ fontSize: '16px', margin: 0 }}>{c.name}</h3>
+  <span style={{ background: '#007bff', color: 'white', borderRadius: '12px', padding: '2px 8px', fontSize: '12px', fontWeight: 'bold' }}>
+    {playerCounts[c.id] || 0} 👤
+  </span>
+</div>
         ))}
       </div>
     </div>
