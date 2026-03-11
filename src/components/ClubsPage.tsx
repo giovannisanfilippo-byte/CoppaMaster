@@ -161,6 +161,7 @@ export const ClubsPage = () => {
   <span style={{ background: '#007bff', color: 'white', borderRadius: '12px', padding: '2px 8px', fontSize: '12px', fontWeight: 'bold' }}>
     {playerCounts[c.id] || 0} 👤
   </span>
+  </div>
 </div>
         ))}
       </div>
