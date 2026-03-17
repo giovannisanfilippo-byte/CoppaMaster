@@ -1332,7 +1332,7 @@ function SetupView({ onCreate, onBack }: { onCreate: (name: string, type: Tourna
             </div>
           )}
 
-           <button disabled={!name} onClick={() => onCreate(name, type, maxTeams, logoPreview || undefined)} className="w-full bg-indigo-600 text-white font-black py-4 rounded-2xl shadow-xl shadow-indigo-500/30 hover:bg-indigo-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed">
+           <button disabled={!name} <button disabled={!name} onClick={() => onCreate(name, type, maxTeams, logoPreview || undefined, matchMode)} className="w-full bg-indigo-600 text-white font-black py-4 rounded-2xl shadow-xl shadow-indigo-500/30 hover:bg-indigo-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed">
             Inizia Configurazione
           </button>
         </div>
