@@ -112,6 +112,7 @@ function PrivateApp() {
   }>({ isOpen: false, title: '', message: '', onConfirm: () => {} });
   const [selectedRound, setSelectedRound] = useState<number | null>(null);
   const [leagueMatchMode, setLeagueMatchMode] = useState<'andata' | 'andata_ritorno'>('andata_ritorno');
+const leagueMatchModeRef = React.useRef<'andata' | 'andata_ritorno'>('andata_ritorno');
 
   // --- Auth & Data Fetching ---
   useEffect(() => {
@@ -277,6 +278,7 @@ function PrivateApp() {
       setTournaments([...tournaments, newTournament]);
       setActiveTournamentId(newTournament.id);
       setLeagueMatchMode(matchMode);
+leagueMatchModeRef.current = matchMode;
       setView('teams');
       setActiveTab(type === 'knockout' ? 'bracket' : 'matches');
     } catch (error) {
@@ -333,7 +335,7 @@ function PrivateApp() {
       await saveTournamentTeams(activeTournamentId, currentTeams.map(t => t.id), user.id);
 
       if (tournament.type === 'league') {
-        const newMatches = generateLeagueCalendar(currentTeams, leagueMatchMode);
+        const newMatches = generateLeagueCalendar(currentTeams, leagueMatchModeRef.current);
         const matchesToSave = newMatches.map(m => ({
           tournament_id: m.tournamentId,
           team_a_id: m.teamAId,
