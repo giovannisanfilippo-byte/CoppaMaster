@@ -333,7 +333,7 @@ function PrivateApp() {
       await saveTournamentTeams(activeTournamentId, currentTeams.map(t => t.id), user.id);
 
       if (tournament.type === 'league') {
-        const newMatches = generateLeagueCalendar(currentTeams);
+        const newMatches = generateLeagueCalendar(currentTeams, leagueMatchMode);
         const matchesToSave = newMatches.map(m => ({
           tournament_id: m.tournamentId,
           team_a_id: m.teamAId,
@@ -435,13 +435,13 @@ if (manualMatchups && manualMatchups.length > 0) {
     }
   };
 
-    const generateLeagueCalendar = (currentTeams: Team[]): Match[] => {
+    const generateLeagueCalendar = (currentTeams: Team[], matchMode: 'andata' | 'andata_ritorno'): Match[] => {
   const newMatches: Match[] = [];
   const teamIds = currentTeams.map(t => t.id);
   if (teamIds.length % 2 !== 0) teamIds.push('BYE');
   const numTeams = teamIds.length;
   const roundsPerLeg = numTeams - 1;
-  const legs = leagueMatchMode === 'andata' ? 1 : 2;
+  const legs = matchMode === 'andata' ? 1 : 2;
 
   for (let leg = 0; leg < legs; leg++) {
     for (let r = 0; r < roundsPerLeg; r++) {
