@@ -64,6 +64,7 @@ export function PublicTournamentView() {
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'matches' | 'standings' | 'scorers' | 'assists' | 'bracket' | 'rose'>('matches');
   const [selectedRoseTeamId, setSelectedRoseTeamId] = useState<string>('');
+  const [selectedPublicRound, setSelectedPublicRound] = useState<number | null>(null);
 
   useEffect(() => {
     if (tournamentId) {
@@ -272,6 +273,8 @@ export function PublicTournamentView() {
 
   const selectedRoseTeam = teams.find(t => t.id === selectedRoseTeamId);
   const roseTeamPlayers = players.filter(p => p.teamId === selectedRoseTeamId).sort((a, b) => a.number - b.number);
+  const roundMatches = matches.filter(m => m.round === selectedPublicRound);
+  const isReturnRound = roundMatches[0]?.isReturnMatch;
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 font-sans pb-24">
@@ -315,45 +318,62 @@ export function PublicTournamentView() {
         <AnimatePresence mode="wait">
 
           {activeTab === 'matches' && (
-            <motion.div key="matches" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-12">
-              {Array.from(new Set(matches.map(m => m.round)))
-                .sort((a: number, b: number) => a - b)
-                .map(roundNum => {
-                  const roundMatches = matches.filter(m => m.round === roundNum);
-                  const isReturn = roundMatches[0]?.isReturnMatch;
-                  return (
-                    <div key={roundNum} className="space-y-4">
-                      <div className="flex items-center gap-4 px-2">
-                        <h2 className="text-sm font-black uppercase tracking-[0.2em] text-indigo-600">Giornata {roundNum}</h2>
-                        <div className="h-px bg-slate-200 flex-1" />
-                        {isReturn && <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 bg-slate-100 px-2 py-1 rounded-md">Ritorno</span>}
-                      </div>
-                      <div className="grid gap-4">
-                        {roundMatches.map(match => {
-                          const teamA = teams.find(t => t.id === match.teamAId);
-                          const teamB = teams.find(t => t.id === match.teamBId);
-                          return (
-                            <div key={match.id} className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
-                              <div className="flex items-center justify-between">
-                                <div className="flex-1 text-right font-bold text-slate-700 truncate">{teamA?.name}</div>
-                                <div className="flex items-center gap-4 px-6">
-                                  <div className="w-12 h-12 flex items-center justify-center text-2xl font-black bg-slate-50 rounded-xl border border-slate-100">
-                                    {match.status === 'finished' ? match.scoreA : '-'}
-                                  </div>
-                                  <div className="text-[10px] font-black text-slate-300 uppercase tracking-widest">VS</div>
-                                  <div className="w-12 h-12 flex items-center justify-center text-2xl font-black bg-slate-50 rounded-xl border border-slate-100">
-                                    {match.status === 'finished' ? match.scoreB : '-'}
-                                  </div>
-                                </div>
-                                <div className="flex-1 text-left font-bold text-slate-700 truncate">{teamB?.name}</div>
+            <motion.div key="matches" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-6">
+              <div className="flex items-center gap-4">
+                <label className="text-sm font-black uppercase tracking-widest text-slate-400">Giornata:</label>
+                <select
+                  value={selectedPublicRound ?? ''}
+                  onChange={e => setSelectedPublicRound(e.target.value ? parseInt(e.target.value) : null)}
+                  className="bg-white border border-slate-200 rounded-2xl px-4 py-2 font-black text-slate-700 text-sm outline-none shadow-sm"
+                >
+                  <option value="">Seleziona giornata...</option>
+                  {Array.from(new Set(matches.map(m => m.round)))
+                    .sort((a: number, b: number) => a - b)
+                    .map(rn => {
+                      const isRet = matches.filter(m => m.round === rn)[0]?.isReturnMatch;
+                      return <option key={rn} value={rn}>Giornata {rn}{isRet ? ' (Ritorno)' : ''}</option>;
+                    })}
+                </select>
+              </div>
+
+              {!selectedPublicRound && (
+                <div className="text-center py-12 text-slate-400 italic text-sm">
+                  Seleziona una giornata dal menu per visualizzare le partite.
+                </div>
+              )}
+
+              {selectedPublicRound && (
+                <div className="space-y-4">
+                  <div className="flex items-center gap-4 px-2">
+                    <h2 className="text-sm font-black uppercase tracking-[0.2em] text-indigo-600">Giornata {selectedPublicRound}</h2>
+                    <div className="h-px bg-slate-200 flex-1" />
+                    {isReturnRound && <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 bg-slate-100 px-2 py-1 rounded-md">Ritorno</span>}
+                  </div>
+                  <div className="grid gap-4">
+                    {roundMatches.map(match => {
+                      const teamA = teams.find(t => t.id === match.teamAId);
+                      const teamB = teams.find(t => t.id === match.teamBId);
+                      return (
+                        <div key={match.id} className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
+                          <div className="flex items-center justify-between">
+                            <div className="flex-1 text-right font-bold text-slate-700 truncate">{teamA?.name}</div>
+                            <div className="flex items-center gap-4 px-6">
+                              <div className="w-12 h-12 flex items-center justify-center text-2xl font-black bg-slate-50 rounded-xl border border-slate-100">
+                                {match.status === 'finished' ? match.scoreA : '-'}
+                              </div>
+                              <div className="text-[10px] font-black text-slate-300 uppercase tracking-widest">VS</div>
+                              <div className="w-12 h-12 flex items-center justify-center text-2xl font-black bg-slate-50 rounded-xl border border-slate-100">
+                                {match.status === 'finished' ? match.scoreB : '-'}
                               </div>
                             </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  );
-                })}
+                            <div className="flex-1 text-left font-bold text-slate-700 truncate">{teamB?.name}</div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </motion.div>
           )}
 
