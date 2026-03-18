@@ -42,6 +42,7 @@ interface Tournament {
   type: 'league' | 'knockout';
   maxTeams: number;
   status: 'attivo' | 'nascosto' | 'concluso';
+  logoUrl?: string;
 }
 
 interface Player {
@@ -87,12 +88,13 @@ export function PublicTournamentView() {
       }
 
       setTournament({
-        id: tData.id,
-        name: tData.name,
-        type: tData.type,
-        maxTeams: tData.max_teams,
-        status: tData.status
-      });
+  id: tData.id,
+  name: tData.name,
+  type: tData.type,
+  maxTeams: tData.max_teams,
+  status: tData.status,
+  logoUrl: tData.logo_url
+});
 
       const { data: ttData } = await supabase
         .from('tournament_teams')
@@ -272,10 +274,14 @@ export function PublicTournamentView() {
       <nav className="bg-slate-900 text-white p-4 sticky top-0 z-50 shadow-xl border-b border-slate-800">
         <div className="max-w-4xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="bg-indigo-600 p-1.5 rounded-lg">
-              <Trophy className="w-5 h-5 text-white" />
-            </div>
-            <h1 className="font-bold text-lg tracking-tight uppercase">{tournament.name}</h1>
+            {tournament.logoUrl ? (
+  <img src={tournament.logoUrl} alt="Logo" className="w-8 h-8 rounded-lg object-cover border border-slate-700" />
+) : (
+  <div className="bg-indigo-600 p-1.5 rounded-lg">
+    <Trophy className="w-5 h-5 text-white" />
+  </div>
+)}
+<h1 className="font-bold text-lg tracking-tight uppercase">{tournament.name}</h1>
           </div>
           <div className="flex gap-1 bg-slate-800 p-1 rounded-xl overflow-x-auto">
             {[
