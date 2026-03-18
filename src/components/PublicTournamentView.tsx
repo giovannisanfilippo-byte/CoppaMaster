@@ -63,6 +63,7 @@ export function PublicTournamentView() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'matches' | 'standings' | 'scorers' | 'assists' | 'bracket' | 'rose'>('matches');
+  const [selectedRoseTeamId, setSelectedRoseTeamId] = useState<string>('');
 
   useEffect(() => {
     if (tournamentId) {
@@ -88,13 +89,13 @@ export function PublicTournamentView() {
       }
 
       setTournament({
-  id: tData.id,
-  name: tData.name,
-  type: tData.type,
-  maxTeams: tData.max_teams,
-  status: tData.status,
-  logoUrl: tData.logo_url
-});
+        id: tData.id,
+        name: tData.name,
+        type: tData.type,
+        maxTeams: tData.max_teams,
+        status: tData.status,
+        logoUrl: tData.logo_url
+      });
 
       const { data: ttData } = await supabase
         .from('tournament_teams')
@@ -269,19 +270,22 @@ export function PublicTournamentView() {
     );
   }
 
+  const selectedRoseTeam = teams.find(t => t.id === selectedRoseTeamId);
+  const roseTeamPlayers = players.filter(p => p.teamId === selectedRoseTeamId).sort((a, b) => a.number - b.number);
+
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 font-sans pb-24">
       <nav className="bg-slate-900 text-white p-4 sticky top-0 z-50 shadow-xl border-b border-slate-800">
         <div className="max-w-4xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
             {tournament.logoUrl ? (
-  <img src={tournament.logoUrl} alt="Logo" className="w-8 h-8 rounded-lg object-cover border border-slate-700" />
-) : (
-  <div className="bg-indigo-600 p-1.5 rounded-lg">
-    <Trophy className="w-5 h-5 text-white" />
-  </div>
-)}
-<h1 className="font-bold text-lg tracking-tight uppercase">{tournament.name}</h1>
+              <img src={tournament.logoUrl} alt="Logo" className="w-8 h-8 rounded-lg object-cover border border-slate-700" />
+            ) : (
+              <div className="bg-indigo-600 p-1.5 rounded-lg">
+                <Trophy className="w-5 h-5 text-white" />
+              </div>
+            )}
+            <h1 className="font-bold text-lg tracking-tight uppercase">{tournament.name}</h1>
           </div>
           <div className="flex gap-1 bg-slate-800 p-1 rounded-xl overflow-x-auto">
             {[
@@ -412,43 +416,58 @@ export function PublicTournamentView() {
 
           {activeTab === 'rose' && (
             <motion.div key="rose" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-6">
-              {teams.map(team => {
-                const teamPlayers = players.filter(p => p.teamId === team.id).sort((a, b) => a.number - b.number);
-                return (
-                  <div key={team.id} className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-                    <div className="p-4 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        {team.logoUrl && (
-                          <img src={team.logoUrl} alt="logo" className="w-8 h-8 rounded-lg object-cover border border-slate-200" />
-                        )}
-                        <h3 className="font-black text-slate-900 uppercase tracking-wide text-sm">{team.name}</h3>
-                      </div>
-                      <span className="bg-indigo-100 text-indigo-600 text-xs font-black px-3 py-1 rounded-full">
-                        {teamPlayers.length} giocatori
-                      </span>
+              <div className="flex items-center gap-4">
+                <label className="text-sm font-black uppercase tracking-widest text-slate-400">Squadra:</label>
+                <select
+                  value={selectedRoseTeamId}
+                  onChange={e => setSelectedRoseTeamId(e.target.value)}
+                  className="bg-white border border-slate-200 rounded-2xl px-4 py-2 font-black text-slate-700 text-sm outline-none shadow-sm"
+                >
+                  <option value="">Seleziona squadra...</option>
+                  {teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                </select>
+              </div>
+
+              {!selectedRoseTeamId && (
+                <div className="text-center py-12 text-slate-400 italic text-sm">
+                  Seleziona una squadra dal menu per visualizzare la rosa.
+                </div>
+              )}
+
+              {selectedRoseTeamId && (
+                <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                  <div className="p-4 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      {selectedRoseTeam?.logoUrl && (
+                        <img src={selectedRoseTeam.logoUrl} alt="logo" className="w-8 h-8 rounded-lg object-cover border border-slate-200" />
+                      )}
+                      <h3 className="font-black text-slate-900 uppercase tracking-wide text-sm">{selectedRoseTeam?.name}</h3>
                     </div>
-                    {teamPlayers.length === 0 ? (
-                      <div className="p-6 text-center text-slate-400 text-sm italic">Nessun giocatore registrato.</div>
-                    ) : (
-                      <div className="divide-y divide-slate-100">
-                        {teamPlayers.map(player => (
-                          <div key={player.id} className="px-4 py-3 flex items-center justify-between hover:bg-slate-50 transition-colors">
-                            <div className="flex items-center gap-3">
-                              <div className="w-8 h-8 bg-indigo-50 rounded-full flex items-center justify-center text-indigo-600 font-black text-xs">
-                                {player.number}
-                              </div>
-                              <span className="font-bold text-slate-700">{player.name}</span>
-                            </div>
-                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                              ID: {player.playerExternalId}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
+                    <span className="bg-indigo-100 text-indigo-600 text-xs font-black px-3 py-1 rounded-full">
+                      {roseTeamPlayers.length} giocatori
+                    </span>
                   </div>
-                );
-              })}
+                  {roseTeamPlayers.length === 0 ? (
+                    <div className="p-6 text-center text-slate-400 text-sm italic">Nessun giocatore registrato.</div>
+                  ) : (
+                    <div className="divide-y divide-slate-100">
+                      {roseTeamPlayers.map(player => (
+                        <div key={player.id} className="px-4 py-3 flex items-center justify-between hover:bg-slate-50 transition-colors">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 bg-indigo-50 rounded-full flex items-center justify-center text-indigo-600 font-black text-xs">
+                              {player.number}
+                            </div>
+                            <span className="font-bold text-slate-700">{player.name}</span>
+                          </div>
+                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                            ID: {player.playerExternalId}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
             </motion.div>
           )}
 
