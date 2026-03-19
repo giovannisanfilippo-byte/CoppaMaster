@@ -11,6 +11,11 @@ export const PlayersPage = () => {
   const [loading, setLoading] = useState(false);
   const [editPlayerId, setEditPlayerId] = useState<string | null>(null);
 
+  // --- Ricerca per ID tesserato ---
+  const [searchId, setSearchId] = useState("");
+  const [moveToTeam, setMoveToTeam] = useState<string>("");
+  const [moveLoading, setMoveLoading] = useState(false);
+
   const fetchData = async () => {
     const { data: p } = await supabase.from('players').select('*').order('name');
     const { data: t } = await supabase.from('teams').select('*').order('name');
@@ -69,11 +74,34 @@ export const PlayersPage = () => {
 
   const selectedTeamData = teams.find(t => t.id === filterTeam);
 
+  // Ricerca per ID tesserato (live mentre si scrive)
+  const searchResults = searchId.trim().length > 0
+    ? players.filter(p =>
+        p.tesserato_id?.toLowerCase().includes(searchId.toLowerCase()) ||
+        p.player_external_id?.toLowerCase().includes(searchId.toLowerCase())
+      )
+    : [];
+
+  const handleMovePlayer = async (playerId: string) => {
+    if (!moveToTeam) { alert("Seleziona una squadra di destinazione!"); return; }
+    setMoveLoading(true);
+    try {
+      await supabase.from('players').update({ team_id: moveToTeam }).eq('id', playerId);
+      await fetchData();
+      setMoveToTeam("");
+      alert("Giocatore spostato!");
+    } catch (err: any) {
+      alert("Errore: " + err.message);
+    } finally {
+      setMoveLoading(false);
+    }
+  };
+
   return (
     <div style={{ color: 'white' }}>
       <h2 style={{ marginBottom: '20px' }}>🏃 {editPlayerId ? "Modifica Tesserato" : "Gestione Tesserati"}</h2>
 
-      <form onSubmit={handleSave} style={{ background: '#1e1e1e', padding: '20px', borderRadius: '15px', marginBottom: '40px', border: editPlayerId ? '2px solid #28a745' : '1px solid #333' }}>
+      <form onSubmit={handleSave} style={{ background: '#1e1e1e', padding: '20px', borderRadius: '15px', marginBottom: '30px', border: editPlayerId ? '2px solid #28a745' : '1px solid #333' }}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '15px', alignItems: 'end' }}>
           <div>
             <label style={{ fontSize: '12px', color: '#aaa' }}>Nome e Cognome</label>
@@ -101,6 +129,67 @@ export const PlayersPage = () => {
         </div>
       </form>
 
+      {/* --- RICERCA PER ID TESSERATO --- */}
+      <div style={{ background: '#111', padding: '25px', borderRadius: '15px', marginBottom: '30px', border: '1px solid #222' }}>
+        <h3 style={{ marginBottom: '15px', color: '#f59e0b' }}>🔎 Cerca Tesserato per ID</h3>
+        <input
+          value={searchId}
+          onChange={e => { setSearchId(e.target.value); setMoveToTeam(""); }}
+          placeholder="Scrivi l'ID tesserato..."
+          style={{ width: '100%', maxWidth: '400px', padding: '12px', borderRadius: '8px', background: '#222', color: '#fff', border: '1px solid #444', fontSize: '16px', marginBottom: '15px' }}
+        />
+
+        {searchId.trim().length > 0 && (
+          <div>
+            {searchResults.length === 0 ? (
+              <div style={{ color: '#555', padding: '10px' }}>Nessun tesserato trovato.</div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                {searchResults.map(p => {
+                  const club = teams.find(t => t.id === p.team_id);
+                  return (
+                    <div key={p.id} style={{ background: '#1a1a1a', padding: '15px', borderRadius: '12px', border: '1px solid #333' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '10px' }}>
+                        <div>
+                          <div style={{ fontWeight: 'bold', fontSize: '16px' }}>{p.name}</div>
+                          <div style={{ color: '#888', fontSize: '12px', marginTop: '2px' }}>ID: {p.tesserato_id || p.player_external_id}</div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '8px' }}>
+                            {club?.logo_url && <img src={club.logo_url} style={{ width: '24px', height: '24px', objectFit: 'contain' }} alt="" />}
+                            <span style={{ color: '#007bff', fontWeight: 'bold', fontSize: '14px' }}>
+                              {club ? club.name : '⚠️ Nessun club assegnato'}
+                            </span>
+                          </div>
+                        </div>
+                        <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+                          <select
+                            value={moveToTeam}
+                            onChange={e => setMoveToTeam(e.target.value)}
+                            style={{ padding: '8px 12px', borderRadius: '8px', background: '#222', color: '#fff', border: '1px solid #444', fontSize: '13px' }}
+                          >
+                            <option value="">Sposta in...</option>
+                            {teams.filter(t => t.id !== p.team_id).map(t => (
+                              <option key={t.id} value={t.id}>{t.name}</option>
+                            ))}
+                          </select>
+                          <button
+                            disabled={moveLoading || !moveToTeam}
+                            onClick={() => handleMovePlayer(p.id)}
+                            style={{ padding: '8px 16px', background: moveToTeam ? '#007bff' : '#333', color: 'white', border: 'none', borderRadius: '8px', cursor: moveToTeam ? 'pointer' : 'default', fontWeight: 'bold', fontSize: '13px' }}
+                          >
+                            {moveLoading ? '...' : 'Sposta'}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* --- VISUALIZZA ROSA SQUADRA --- */}
       <div style={{ background: '#111', padding: '25px', borderRadius: '15px', border: '1px solid #222' }}>
         <h3 style={{ marginBottom: '20px', color: '#007bff' }}>🔍 Visualizza Rosa Squadra</h3>
         <select 
@@ -124,7 +213,7 @@ export const PlayersPage = () => {
                 <div key={p.id} style={{ background: '#222', padding: '15px', borderRadius: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: '1px solid #333' }}>
                   <div>
                     <div style={{ fontWeight: 'bold' }}>{p.name}</div>
-                    <div style={{ color: '#888', fontSize: '12px' }}>ID: {p.tesserato_id}</div>
+                    <div style={{ color: '#888', fontSize: '12px' }}>ID: {p.tesserato_id || p.player_external_id}</div>
                   </div>
                   <div style={{ display: 'flex', gap: '10px' }}>
                     <button onClick={() => startEdit(p)} style={{ background: '#333', border: 'none', padding: '8px', borderRadius: '5px', cursor: 'pointer' }}>✏️</button>
@@ -132,6 +221,9 @@ export const PlayersPage = () => {
                   </div>
                 </div>
               ))}
+              {filteredPlayers.length === 0 && (
+                <div style={{ color: '#555', padding: '20px' }}>Nessun tesserato in questa squadra.</div>
+              )}
             </div>
           </div>
         ) : (
