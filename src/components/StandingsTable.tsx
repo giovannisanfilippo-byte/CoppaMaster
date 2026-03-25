@@ -28,7 +28,12 @@ export function StandingsTable({ standings }: StandingsTableProps) {
             {standings.map((s, i) => (
               <tr key={s.name} className="hover:bg-slate-50/50">
                 <td className="px-4 py-4 font-black text-slate-300">{i + 1}</td>
-                <td className="px-4 py-4 font-bold text-slate-700">{s.name}</td>
+                <td className="px-4 py-4">
+  <div className="flex items-center gap-2">
+    {s.logoUrl && <img src={s.logoUrl} alt="" className="w-6 h-6 rounded-md object-cover flex-shrink-0 border border-slate-100" />}
+    <span className="font-bold text-slate-700">{s.name}</span>
+  </div>
+</td>
                 <td className="px-4 py-4 text-center font-medium">{s.p}</td>
                 <td className="px-4 py-4 text-center font-medium text-emerald-600">{s.w}</td>
                 <td className="px-4 py-4 text-center font-medium text-slate-400">{s.d}</td>
