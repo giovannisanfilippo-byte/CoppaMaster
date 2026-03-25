@@ -87,7 +87,7 @@ export function PublicTournamentView() {
     const stats: Record<string, { goals: number; name: string; team: string }> = {};
     events.filter(e => e.type === 'gol').forEach(e => {
       const player = players.find(p => p.id === e.playerId); if (!player) return;
-      if (!stats[e.playerId]) stats[e.playerId] = { goals: 0, name: player.name, team: teams.find(t => t.id === player.teamId)?.name || '' };
+      if (!stats[e.playerId]) stats[e.playerId] = { goals: 0, name: player.name, team: teams.find(t => t.id === player.teamId)?.name || '', logoUrl: teams.find(t => t.id === player.teamId)?.logoUrl || '' };
       stats[e.playerId].goals++;
     });
     return Object.values(stats).sort((a, b) => b.goals - a.goals);
@@ -97,7 +97,7 @@ export function PublicTournamentView() {
     const stats: Record<string, { assists: number; name: string; team: string }> = {};
     events.filter(e => e.type === 'assist').forEach(e => {
       const player = players.find(p => p.id === e.playerId); if (!player) return;
-      if (!stats[e.playerId]) stats[e.playerId] = { assists: 0, name: player.name, team: teams.find(t => t.id === player.teamId)?.name || '' };
+      if (!stats[e.playerId]) stats[e.playerId] = { assists: 0, name: player.name, team: teams.find(t => t.id === player.teamId)?.name || '', logoUrl: teams.find(t => t.id === player.teamId)?.logoUrl || '' };
       stats[e.playerId].assists++;
     });
     return Object.values(stats).sort((a, b) => b.assists - a.assists);
