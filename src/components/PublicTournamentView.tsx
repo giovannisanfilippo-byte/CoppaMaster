@@ -73,7 +73,7 @@ export function PublicTournamentView() {
   const standings = useMemo(() => {
     if (!tournament || tournament.type !== 'league') return [];
     const stats: Record<string, any> = {};
-    teams.forEach(t => { stats[t.id] = { name: t.name, p: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, pts: 0 }; });
+    teams.forEach(t => { stats[t.id] = { name: t.name, logoUrl: t.logoUrl, p: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, pts: 0 }; });
     matches.filter(m => m.status === 'finished' && m.matchType === 'league_match').forEach(m => {
       if (!m.teamAId || !m.teamBId) return;
       const sA = stats[m.teamAId]; const sB = stats[m.teamBId]; if (!sA || !sB) return;
