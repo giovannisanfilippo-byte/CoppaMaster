@@ -321,7 +321,7 @@ function PrivateApp() {
     const stats: Record<string, { goals: number; name: string; team: string }> = {};
     events.filter(e => e.type === 'gol' && ids.has(e.matchId)).forEach(e => {
       const p = players.find(x => x.id === e.playerId); if (!p) return;
-      if (!stats[e.playerId]) stats[e.playerId] = { goals: 0, name: p.name, team: teams.find(t => t.id === p.teamId)?.name || '' };
+      if (!stats[e.playerId]) stats[e.playerId] = { goals: 0, name: p.name, team: teams.find(t => t.id === p.teamId)?.name || '', logoUrl: teams.find(t => t.id === p.teamId)?.logoUrl || '' };
       stats[e.playerId].goals++;
     });
     return Object.values(stats).sort((a, b) => b.goals - a.goals);
@@ -333,7 +333,7 @@ function PrivateApp() {
     const stats: Record<string, { assists: number; name: string; team: string }> = {};
     events.filter(e => e.type === 'assist' && ids.has(e.matchId)).forEach(e => {
       const p = players.find(x => x.id === e.playerId); if (!p) return;
-      if (!stats[e.playerId]) stats[e.playerId] = { assists: 0, name: p.name, team: teams.find(t => t.id === p.teamId)?.name || '' };
+      if (!stats[e.playerId]) stats[e.playerId] = { assists: 0, name: p.name, team: teams.find(t => t.id === p.teamId)?.name || '', logoUrl: teams.find(t => t.id === p.teamId)?.logoUrl || '' };
       stats[e.playerId].assists++;
     });
     return Object.values(stats).sort((a, b) => b.assists - a.assists);
@@ -451,18 +451,18 @@ function PrivateApp() {
                           <div key={match.id} className="bg-white p-4 rounded-2xl shadow-sm border border-slate-200">
                             <div className="flex items-center justify-between gap-2">
                               <div className="flex-1 flex items-center justify-end gap-2 min-w-0">
-  <span className="font-bold text-slate-700 text-sm truncate">{tA?.name}</span>
-  {tA?.logoUrl && <img src={tA.logoUrl} alt="" className="w-6 h-6 rounded-md object-cover flex-shrink-0 border border-slate-100" />}
-</div>
+                                <span className="font-bold text-slate-700 text-sm truncate">{tA?.name}</span>
+                                {tA?.logoUrl && <img src={tA.logoUrl} alt="" className="w-6 h-6 rounded-md object-cover flex-shrink-0 border border-slate-100" />}
+                              </div>
                               <div className="flex items-center gap-2 px-2 flex-shrink-0">
                                 <div className="w-10 h-10 flex items-center justify-center text-xl font-black bg-slate-50 rounded-xl border border-slate-100">{match.status === 'finished' ? match.scoreA : '-'}</div>
                                 <div className="text-[9px] font-black text-slate-300 uppercase">VS</div>
                                 <div className="w-10 h-10 flex items-center justify-center text-xl font-black bg-slate-50 rounded-xl border border-slate-100">{match.status === 'finished' ? match.scoreB : '-'}</div>
                               </div>
                               <div className="flex-1 flex items-center gap-2 min-w-0">
-  {tB?.logoUrl && <img src={tB.logoUrl} alt="" className="w-6 h-6 rounded-md object-cover flex-shrink-0 border border-slate-100" />}
-  <span className="font-bold text-slate-700 text-sm truncate">{tB?.name}</span>
-</div>
+                                {tB?.logoUrl && <img src={tB.logoUrl} alt="" className="w-6 h-6 rounded-md object-cover flex-shrink-0 border border-slate-100" />}
+                                <span className="font-bold text-slate-700 text-sm truncate">{tB?.name}</span>
+                              </div>
                             </div>
                             <div className="flex justify-center mt-2">
                               <button onClick={() => setSelectedMatchId(match.id)} className="text-[10px] font-black uppercase tracking-widest text-indigo-400 hover:text-indigo-600 transition-colors py-1">Referto Marcatori</button>
