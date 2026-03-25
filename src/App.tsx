@@ -296,7 +296,7 @@ function PrivateApp() {
 
   const standings = useMemo(() => {
     const stats: Record<string, any> = {};
-    currentTournamentTeams.forEach(t => { stats[t.id] = { id: t.id, name: t.name, p: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, pts: 0 }; });
+    currentTournamentTeams.forEach(t => { stats[t.id] = { id: t.id, name: t.name, logoUrl: t.logoUrl, p: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, pts: 0 }; });
     const fm = matches.filter(m => m.tournamentId === activeTournamentId && m.status === 'finished' && m.matchType === 'league_match');
     fm.forEach(m => {
       if (!m.teamAId || !m.teamBId) return;
@@ -450,13 +450,19 @@ function PrivateApp() {
                         return (
                           <div key={match.id} className="bg-white p-4 rounded-2xl shadow-sm border border-slate-200">
                             <div className="flex items-center justify-between gap-2">
-                              <div className="flex-1 text-right font-bold text-slate-700 text-sm truncate">{tA?.name}</div>
+                              <div className="flex-1 flex items-center justify-end gap-2 min-w-0">
+  <span className="font-bold text-slate-700 text-sm truncate">{tA?.name}</span>
+  {tA?.logoUrl && <img src={tA.logoUrl} alt="" className="w-6 h-6 rounded-md object-cover flex-shrink-0 border border-slate-100" />}
+</div>
                               <div className="flex items-center gap-2 px-2 flex-shrink-0">
                                 <div className="w-10 h-10 flex items-center justify-center text-xl font-black bg-slate-50 rounded-xl border border-slate-100">{match.status === 'finished' ? match.scoreA : '-'}</div>
                                 <div className="text-[9px] font-black text-slate-300 uppercase">VS</div>
                                 <div className="w-10 h-10 flex items-center justify-center text-xl font-black bg-slate-50 rounded-xl border border-slate-100">{match.status === 'finished' ? match.scoreB : '-'}</div>
                               </div>
-                              <div className="flex-1 text-left font-bold text-slate-700 text-sm truncate">{tB?.name}</div>
+                              <div className="flex-1 flex items-center gap-2 min-w-0">
+  {tB?.logoUrl && <img src={tB.logoUrl} alt="" className="w-6 h-6 rounded-md object-cover flex-shrink-0 border border-slate-100" />}
+  <span className="font-bold text-slate-700 text-sm truncate">{tB?.name}</span>
+</div>
                             </div>
                             <div className="flex justify-center mt-2">
                               <button onClick={() => setSelectedMatchId(match.id)} className="text-[10px] font-black uppercase tracking-widest text-indigo-400 hover:text-indigo-600 transition-colors py-1">Referto Marcatori</button>
