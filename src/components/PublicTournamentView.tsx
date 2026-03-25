@@ -205,7 +205,10 @@ export function PublicTournamentView() {
                       return (
                         <div key={match.id} className="bg-white p-4 rounded-2xl shadow-sm border border-slate-200">
                           <div className="flex items-center justify-between gap-2">
-                            <div className="flex-1 text-right font-bold text-slate-700 text-sm truncate">{teamA?.name}</div>
+                            <div className="flex-1 flex items-center justify-end gap-2 min-w-0">
+                              <span className="font-bold text-slate-700 text-sm truncate">{teamA?.name}</span>
+                              {teamA?.logoUrl && <img src={teamA.logoUrl} alt="" className="w-6 h-6 rounded-md object-cover flex-shrink-0 border border-slate-100" />}
+                            </div>
                             <div className="flex items-center gap-2 px-2 flex-shrink-0">
                               <div className="w-10 h-10 flex items-center justify-center text-xl font-black bg-slate-50 rounded-xl border border-slate-100">
                                 {match.status === 'finished' ? match.scoreA : '-'}
@@ -215,7 +218,10 @@ export function PublicTournamentView() {
                                 {match.status === 'finished' ? match.scoreB : '-'}
                               </div>
                             </div>
-                            <div className="flex-1 text-left font-bold text-slate-700 text-sm truncate">{teamB?.name}</div>
+                            <div className="flex-1 flex items-center gap-2 min-w-0">
+                              {teamB?.logoUrl && <img src={teamB.logoUrl} alt="" className="w-6 h-6 rounded-md object-cover flex-shrink-0 border border-slate-100" />}
+                              <span className="font-bold text-slate-700 text-sm truncate">{teamB?.name}</span>
+                            </div>
                           </div>
                         </div>
                       );
