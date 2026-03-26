@@ -12,16 +12,16 @@ export function StandingsTable({ standings }: StandingsTableProps) {
         <table className="w-full text-sm text-left">
           <thead className="bg-slate-50 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">
             <tr>
-              <th className="px-4 py-4">Pos</th>
-              <th className="px-4 py-4">Squadra</th>
-              <th className="px-4 py-4 text-center" title="Partite giocate">P</th>
-              <th className="px-4 py-4 text-center" title="Vittorie">V</th>
-              <th className="px-4 py-4 text-center" title="Pareggi">N</th>
-              <th className="px-4 py-4 text-center" title="Sconfitte">S</th>
-              <th className="px-4 py-4 text-center" title="Gol Fatti">GF</th>
-              <th className="px-4 py-4 text-center" title="Gol Subiti">GS</th>
-              <th className="px-4 py-4 text-center" title="Differenza Reti">DR</th>
-              <th className="px-4 py-4 text-center" title="Punti">PT</th>
+              <th className="px-3 py-2">Pos</th>
+<th className="px-3 py-2">Squadra</th>
+<th className="px-3 py-2 text-center" title="Punti">PT</th>
+<th className="px-3 py-2 text-center" title="Partite giocate">P</th>
+<th className="px-3 py-2 text-center" title="Vittorie">V</th>
+<th className="px-3 py-2 text-center" title="Pareggi">N</th>
+<th className="px-3 py-2 text-center" title="Sconfitte">S</th>
+<th className="px-3 py-2 text-center" title="Gol Fatti">GF</th>
+<th className="px-3 py-2 text-center" title="Gol Subiti">GS</th>
+<th className="px-3 py-2 text-center" title="Differenza Reti">DR</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
