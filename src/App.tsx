@@ -448,25 +448,27 @@ function PrivateApp() {
                       {rm.map(match => {
                         const tA = teams.find(t => t.id === match.teamAId); const tB = teams.find(t => t.id === match.teamBId);
                         return (
-                          <div key={match.id} className="bg-white p-4 rounded-2xl shadow-sm border border-slate-200">
-                            <div className="flex items-center justify-between gap-2">
-                              <div className="flex-1 flex items-center justify-end gap-2 min-w-0">
-                                <span className="font-bold text-slate-700 text-sm truncate">{tA?.name}</span>
-                                {tA?.logoUrl && <img src={tA.logoUrl} alt="" className="w-6 h-6 rounded-md object-cover flex-shrink-0 border border-slate-100" />}
-                              </div>
-                              <div className="flex items-center gap-2 px-2 flex-shrink-0">
-                                <div className="w-10 h-10 flex items-center justify-center text-xl font-black bg-slate-50 rounded-xl border border-slate-100">{match.status === 'finished' ? match.scoreA : '-'}</div>
-                                <div className="text-[9px] font-black text-slate-300 uppercase">VS</div>
-                                <div className="w-10 h-10 flex items-center justify-center text-xl font-black bg-slate-50 rounded-xl border border-slate-100">{match.status === 'finished' ? match.scoreB : '-'}</div>
-                              </div>
-                              <div className="flex-1 flex items-center gap-2 min-w-0">
-                                {tB?.logoUrl && <img src={tB.logoUrl} alt="" className="w-6 h-6 rounded-md object-cover flex-shrink-0 border border-slate-100" />}
-                                <span className="font-bold text-slate-700 text-sm truncate">{tB?.name}</span>
-                              </div>
+                          <div key={match.id} className="bg-white px-3 py-2.5 rounded-2xl shadow-sm border border-slate-200 flex items-center gap-1">
+                            <div className="flex-1 flex items-center justify-end gap-1.5 min-w-0">
+                              <span className="font-bold text-slate-700 text-xs truncate">{tA?.name}</span>
+                              {tA?.logoUrl
+                                ? <img src={tA.logoUrl} alt="" className="w-6 h-6 rounded-md object-cover flex-shrink-0 border border-slate-100" />
+                                : <div className="w-6 h-6 rounded-md bg-slate-100 flex items-center justify-center text-[10px] font-black text-slate-400 flex-shrink-0">{tA?.name?.charAt(0) ?? '?'}</div>
+                              }
                             </div>
-                            <div className="flex justify-center mt-2">
-                              <button onClick={() => setSelectedMatchId(match.id)} className="text-[10px] font-black uppercase tracking-widest text-indigo-400 hover:text-indigo-600 transition-colors py-1">Referto Marcatori</button>
+                            <div className="flex items-center gap-1 px-1 flex-shrink-0">
+                              <div className="w-8 h-8 flex items-center justify-center text-base font-black bg-slate-50 rounded-lg border border-slate-100">{match.status === 'finished' ? match.scoreA : '-'}</div>
+                              <div className="text-[8px] font-black text-slate-300 uppercase">VS</div>
+                              <div className="w-8 h-8 flex items-center justify-center text-base font-black bg-slate-50 rounded-lg border border-slate-100">{match.status === 'finished' ? match.scoreB : '-'}</div>
                             </div>
+                            <div className="flex-1 flex items-center gap-1.5 min-w-0">
+                              {tB?.logoUrl
+                                ? <img src={tB.logoUrl} alt="" className="w-6 h-6 rounded-md object-cover flex-shrink-0 border border-slate-100" />
+                                : <div className="w-6 h-6 rounded-md bg-slate-100 flex items-center justify-center text-[10px] font-black text-slate-400 flex-shrink-0">{tB?.name?.charAt(0) ?? '?'}</div>
+                              }
+                              <span className="font-bold text-slate-700 text-xs truncate">{tB?.name}</span>
+                            </div>
+                            <button onClick={() => setSelectedMatchId(match.id)} className="flex-shrink-0 ml-1 text-[9px] font-black uppercase tracking-widest text-indigo-400 hover:text-indigo-600 transition-colors bg-indigo-50 hover:bg-indigo-100 px-2 py-1.5 rounded-lg">📋</button>
                           </div>
                         );
                       })}
