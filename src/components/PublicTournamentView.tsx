@@ -197,34 +197,25 @@ export function PublicTournamentView() {
                       const teamB = teams.find(t => t.id === match.teamBId);
                       const finished = match.status === 'finished';
                       return (
-                        <div key={match.id} className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-                          {/* Riga squadra A */}
-                          <div className="flex items-center justify-between px-4 py-2.5">
-                            <div className="flex items-center gap-2 min-w-0">
-                              {teamA?.logoUrl
-                                ? <img src={teamA.logoUrl} alt="" className="w-7 h-7 rounded-md object-cover flex-shrink-0 border border-slate-100" />
-                                : <div className="w-7 h-7 rounded-md bg-slate-100 flex items-center justify-center text-xs font-black text-slate-400 flex-shrink-0">{teamA?.name?.charAt(0) ?? '?'}</div>
-                              }
-                              <span className="font-bold text-slate-800 text-sm truncate">{teamA?.name ?? '---'}</span>
-                            </div>
-                            <span className={`text-xl font-black ml-3 flex-shrink-0 ${finished && match.scoreA > match.scoreB ? 'text-indigo-600' : 'text-slate-700'}`}>
-                              {finished ? match.scoreA : '-'}
-                            </span>
+                        <div key={match.id} className="bg-white px-2 py-2 rounded-xl shadow-sm border border-slate-200 flex items-center gap-1">
+                          <div className="flex-1 flex items-center justify-end gap-1 min-w-0">
+                            <span className="font-bold text-slate-700 text-[11px] truncate">{teamA?.name ?? '---'}</span>
+                            {teamA?.logoUrl
+                              ? <img src={teamA.logoUrl} alt="" className="w-5 h-5 rounded object-cover flex-shrink-0 border border-slate-100" />
+                              : <div className="w-5 h-5 rounded bg-slate-100 flex items-center justify-center text-[9px] font-black text-slate-400 flex-shrink-0">{teamA?.name?.charAt(0) ?? '?'}</div>
+                            }
                           </div>
-                          {/* Divisore */}
-                          <div className="h-px bg-slate-100 mx-4" />
-                          {/* Riga squadra B */}
-                          <div className="flex items-center justify-between px-4 py-2.5">
-                            <div className="flex items-center gap-2 min-w-0">
-                              {teamB?.logoUrl
-                                ? <img src={teamB.logoUrl} alt="" className="w-7 h-7 rounded-md object-cover flex-shrink-0 border border-slate-100" />
-                                : <div className="w-7 h-7 rounded-md bg-slate-100 flex items-center justify-center text-xs font-black text-slate-400 flex-shrink-0">{teamB?.name?.charAt(0) ?? '?'}</div>
-                              }
-                              <span className="font-bold text-slate-800 text-sm truncate">{teamB?.name ?? '---'}</span>
-                            </div>
-                            <span className={`text-xl font-black ml-3 flex-shrink-0 ${finished && match.scoreB > match.scoreA ? 'text-indigo-600' : 'text-slate-700'}`}>
-                              {finished ? match.scoreB : '-'}
-                            </span>
+                          <div className="flex items-center gap-0.5 px-1 flex-shrink-0">
+                            <div className="w-7 h-7 flex items-center justify-center text-sm font-black bg-slate-50 rounded-lg border border-slate-100">{match.status === 'finished' ? match.scoreA : '-'}</div>
+                            <div className="text-[7px] font-black text-slate-300 px-0.5">-</div>
+                            <div className="w-7 h-7 flex items-center justify-center text-sm font-black bg-slate-50 rounded-lg border border-slate-100">{match.status === 'finished' ? match.scoreB : '-'}</div>
+                          </div>
+                          <div className="flex-1 flex items-center gap-1 min-w-0">
+                            {teamB?.logoUrl
+                              ? <img src={teamB.logoUrl} alt="" className="w-5 h-5 rounded object-cover flex-shrink-0 border border-slate-100" />
+                              : <div className="w-5 h-5 rounded bg-slate-100 flex items-center justify-center text-[9px] font-black text-slate-400 flex-shrink-0">{teamB?.name?.charAt(0) ?? '?'}</div>
+                            }
+                            <span className="font-bold text-slate-700 text-[11px] truncate">{teamB?.name ?? '---'}</span>
                           </div>
                         </div>
                       );
