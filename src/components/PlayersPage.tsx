@@ -37,15 +37,30 @@ export const PlayersPage = () => {
         }).eq('id', editPlayerId);
         setEditPlayerId(null);
       } else {
-        await supabase.from('players').insert([
-          { name: playerName, tesserato_id: tesseratoId, team_id: selectedTeam }
-        ]);
-      }
-      setPlayerName("");
-      setTesseratoId("");
-      setSelectedTeam("");
-      fetchData();
-      alert("Operazione completata!");
+  // Controlla se esiste già un giocatore con lo stesso ID tesserato
+  const { data: existing } = await supabase
+    .from('players')
+    .select('id, name, team_id')
+    .eq('tesserato_id', tesseratoId)
+    .maybeSingle();
+
+  if (existing) {
+    const clubEsistente = teams.find(t => t.id === existing.team_id);
+    const nomeClub = clubEsistente ? clubEsistente.name : "club sconosciuto";
+    alert(`⚠️ Tesserato già registrato!\n\nNome: ${existing.name}\nClub attuale: ${nomeClub}\nID: ${tesseratoId}\n\nSe vuoi spostarlo, usa la sezione "Cerca Tesserato per ID".`);
+    setLoading(false);
+    return;
+  }
+
+  await supabase.from('players').insert([
+    { name: playerName, tesserato_id: tesseratoId, team_id: selectedTeam }
+  ]);
+}
+setPlayerName("");
+setTesseratoId("");
+setSelectedTeam("");
+fetchData();
+alert("Operazione completata!");
     } catch (err: any) {
       alert("Errore: " + err.message);
     } finally {
