@@ -23,8 +23,8 @@ export function MatchReportForm({ match, teams, players, events, onUpdateScore, 
   const teamA = teams.find((t: any) => t.id === match.teamAId);
   const teamB = teams.find((t: any) => t.id === match.teamBId);
   
-  const teamAPlayers = players.filter((p: any) => p.teamId === match.teamAId);
-  const teamBPlayers = players.filter((p: any) => p.teamId === match.teamBId);
+  const teamAPlayers = players.filter((p: any) => p.teamId === match.teamAId).sort((a: any, b: any) => a.name.localeCompare(b.name, 'it'));
+  const teamBPlayers = players.filter((p: any) => p.teamId === match.teamBId).sort((a: any, b: any) => b.name.localeCompare(a.name, 'it'));
 
   const teamAGoals = events.filter((e: any) => e.type === 'gol' && players.find((p: any) => p.id === e.playerId)?.teamId === match.teamAId).length;
   const teamBGoals = events.filter((e: any) => e.type === 'gol' && players.find((p: any) => p.id === e.playerId)?.teamId === match.teamBId).length;
