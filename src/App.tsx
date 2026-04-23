@@ -272,7 +272,8 @@ function PrivateApp() {
 
     // Se esiste un turno successivo, pulisce lo slot occupato dal vincitore
     if (currentMatch?.nextMatchId) {
-      const fieldToClear = currentMatch.positionInRound % 2 === 1 ? 'team_a_id' : 'team_b_id';
+      const isB = (currentMatch.positionInRound || 0) % 2 !== 0;
+      const fieldToClear = isB ? 'team_b_id' : 'team_a_id';
       await supabase.from('matches').update({ [fieldToClear]: null }).eq('id', currentMatch.nextMatchId);
       setMatches(matches.map(m => {
         if (m.id === matchId) return { ...m, scoreA: 0, scoreB: 0, status: 'scheduled' };
