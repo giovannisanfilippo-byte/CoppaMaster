@@ -263,13 +263,29 @@ function PrivateApp() {
   };
 
   const resetMatch = async (matchId: string) => {
-    try {
-      for (const event of events.filter(e => e.matchId === matchId)) await supabase.from('match_events').delete().eq('id', event.id);
-      await supabase.from('matches').update({ score_a: 0, score_b: 0, status: 'scheduled' }).eq('id', matchId);
-      setEvents(events.filter(e => e.matchId !== matchId));
+  try {
+    // Trova la partita corrente per recuperare next_match_id e position_in_round
+    const currentMatch = matches.find(m => m.id === matchId);
+
+    for (const event of events.filter(e => e.matchId === matchId)) await supabase.from('match_events').delete().eq('id', event.id);
+    await supabase.from('matches').update({ score_a: 0, score_b: 0, status: 'scheduled' }).eq('id', matchId);
+
+    // Se esiste un turno successivo, pulisce lo slot occupato dal vincitore
+    if (currentMatch?.nextMatchId) {
+      const fieldToClear = currentMatch.positionInRound % 2 === 1 ? 'team_a_id' : 'team_b_id';
+      await supabase.from('matches').update({ [fieldToClear]: null }).eq('id', currentMatch.nextMatchId);
+      setMatches(matches.map(m => {
+        if (m.id === matchId) return { ...m, scoreA: 0, scoreB: 0, status: 'scheduled' };
+        if (m.id === currentMatch.nextMatchId) return { ...m, [fieldToClear === 'team_a_id' ? 'teamAId' : 'teamBId']: null };
+        return m;
+      }));
+    } else {
       setMatches(matches.map(m => m.id === matchId ? { ...m, scoreA: 0, scoreB: 0, status: 'scheduled' } : m));
-    } catch (error) { console.error('Error resetting match:', error); }
-  };
+    }
+
+    setEvents(events.filter(e => e.matchId !== matchId));
+  } catch (error) { console.error('Error resetting match:', error); }
+};
 
   const updateMatchScore = async (matchId: string, scoreA: number, scoreB: number) => {
     try {
