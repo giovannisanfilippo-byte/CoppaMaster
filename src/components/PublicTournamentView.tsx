@@ -124,7 +124,7 @@ export function PublicTournamentView() {
   );
 
   const selectedRoseTeam = teams.find(t => t.id === selectedRoseTeamId);
-  const roseTeamPlayers = players.filter(p => p.teamId === selectedRoseTeamId).sort((a, b) => a.number - b.number);
+  const roseTeamPlayers = players.filter(p => p.teamId === selectedRoseTeamId).sort((a, b) => a.name.localeCompare(b.name, 'it'));
   const roundMatches = matches.filter(m => m.round === selectedPublicRound);
   const isReturnRound = roundMatches[0]?.isReturnMatch;
 
