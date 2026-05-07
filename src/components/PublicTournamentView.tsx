@@ -276,7 +276,7 @@ export function PublicTournamentView() {
                 <span className="text-slate-700 font-medium truncate">{getPlayerInfo(e.playerId).name}</span>
               </div>
             ))}
-            {goalsB.map(e => (
+            {assistsB.map(e => (
               <div key={e.id} className="flex items-center gap-1.5 text-[11px]">
                 <span className="w-4 h-4 bg-blue-100 text-blue-600 rounded flex items-center justify-center text-[8px] font-black flex-shrink-0">A</span>
                 <span className="text-slate-700 font-medium truncate">{getPlayerInfo(e.playerId).name}</span>
