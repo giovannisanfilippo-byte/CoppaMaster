@@ -32,6 +32,7 @@ export function PublicTournamentView() {
   const [activeTab, setActiveTab] = useState<'matches' | 'standings' | 'scorers' | 'assists' | 'bracket' | 'rose'>('matches');
   const [selectedRoseTeamId, setSelectedRoseTeamId] = useState<string>('');
   const [selectedPublicRound, setSelectedPublicRound] = useState<number | null>(null);
+  const [expandedMatchId, setExpandedMatchId] = useState<string | null>(null);
 
   useEffect(() => { if (tournamentId) loadData(); }, [tournamentId]);
 
@@ -193,33 +194,103 @@ export function PublicTournamentView() {
                   </div>
                   <div className="grid gap-2">
                     {roundMatches.map(match => {
-                      const teamA = teams.find(t => t.id === match.teamAId);
-                      const teamB = teams.find(t => t.id === match.teamBId);
-                      const finished = match.status === 'finished';
-                      return (
-                        <div key={match.id} className="bg-white px-2 py-2 rounded-xl shadow-sm border border-slate-200 flex items-center gap-1">
-                          <div className="flex-1 flex items-center justify-end gap-1 min-w-0">
-                            <span className="font-bold text-slate-700 text-[11px] truncate">{teamA?.name ?? '---'}</span>
-                            {teamA?.logoUrl
-                              ? <img src={teamA.logoUrl} alt="" className="w-5 h-5 rounded object-cover flex-shrink-0 border border-slate-100" />
-                              : <div className="w-5 h-5 rounded bg-slate-100 flex items-center justify-center text-[9px] font-black text-slate-400 flex-shrink-0">{teamA?.name?.charAt(0) ?? '?'}</div>
-                            }
-                          </div>
-                          <div className="flex items-center gap-0.5 px-1 flex-shrink-0">
-                            <div className="w-7 h-7 flex items-center justify-center text-sm font-black bg-slate-50 rounded-lg border border-slate-100">{match.status === 'finished' ? match.scoreA : '-'}</div>
-                            <div className="text-[7px] font-black text-slate-300 px-0.5">-</div>
-                            <div className="w-7 h-7 flex items-center justify-center text-sm font-black bg-slate-50 rounded-lg border border-slate-100">{match.status === 'finished' ? match.scoreB : '-'}</div>
-                          </div>
-                          <div className="flex-1 flex items-center gap-1 min-w-0">
-                            {teamB?.logoUrl
-                              ? <img src={teamB.logoUrl} alt="" className="w-5 h-5 rounded object-cover flex-shrink-0 border border-slate-100" />
-                              : <div className="w-5 h-5 rounded bg-slate-100 flex items-center justify-center text-[9px] font-black text-slate-400 flex-shrink-0">{teamB?.name?.charAt(0) ?? '?'}</div>
-                            }
-                            <span className="font-bold text-slate-700 text-[11px] truncate">{teamB?.name ?? '---'}</span>
-                          </div>
-                        </div>
-                      );
-                    })}
+  const teamA = teams.find(t => t.id === match.teamAId);
+  const teamB = teams.find(t => t.id === match.teamBId);
+  const isExpanded = expandedMatchId === match.id;
+  const matchEvents = events.filter(e => e.matchId === match.id);
+  const matchGoals = matchEvents.filter(e => e.type === 'gol');
+  const matchAssists = matchEvents.filter(e => e.type === 'assist');
+
+  const getPlayerInfo = (playerId: string) => {
+    const player = players.find(p => p.id === playerId);
+    const team = teams.find(t => t.id === player?.teamId);
+    return { name: player?.name ?? '?', teamId: player?.teamId };
+  };
+
+  const goalsA = matchGoals.filter(e => getPlayerInfo(e.playerId).teamId === match.teamAId);
+  const goalsB = matchGoals.filter(e => getPlayerInfo(e.playerId).teamId === match.teamBId);
+  const assistsA = matchAssists.filter(e => getPlayerInfo(e.playerId).teamId === match.teamAId);
+  const assistsB = matchAssists.filter(e => getPlayerInfo(e.playerId).teamId === match.teamBId);
+
+  const hasEvents = matchEvents.length > 0;
+
+  return (
+    <div key={match.id} className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+      {/* Card partita (identica a prima) */}
+      <div
+        className={`px-2 py-2 flex items-center gap-1 ${match.status === 'finished' && hasEvents ? 'cursor-pointer active:bg-slate-50' : ''}`}
+        onClick={() => match.status === 'finished' && hasEvents && setExpandedMatchId(isExpanded ? null : match.id)}
+      >
+        <div className="flex-1 flex items-center justify-end gap-1 min-w-0">
+          <span className="font-bold text-slate-700 text-[11px] truncate">{teamA?.name ?? '---'}</span>
+          {teamA?.logoUrl
+            ? <img src={teamA.logoUrl} alt="" className="w-5 h-5 rounded object-cover flex-shrink-0 border border-slate-100" />
+            : <div className="w-5 h-5 rounded bg-slate-100 flex items-center justify-center text-[9px] font-black text-slate-400 flex-shrink-0">{teamA?.name?.charAt(0) ?? '?'}</div>
+          }
+        </div>
+        <div className="flex items-center gap-0.5 px-1 flex-shrink-0">
+          <div className="w-7 h-7 flex items-center justify-center text-sm font-black bg-slate-50 rounded-lg border border-slate-100">{match.status === 'finished' ? match.scoreA : '-'}</div>
+          <div className="text-[7px] font-black text-slate-300 px-0.5">-</div>
+          <div className="w-7 h-7 flex items-center justify-center text-sm font-black bg-slate-50 rounded-lg border border-slate-100">{match.status === 'finished' ? match.scoreB : '-'}</div>
+        </div>
+        <div className="flex-1 flex items-center gap-1 min-w-0">
+          {teamB?.logoUrl
+            ? <img src={teamB.logoUrl} alt="" className="w-5 h-5 rounded object-cover flex-shrink-0 border border-slate-100" />
+            : <div className="w-5 h-5 rounded bg-slate-100 flex items-center justify-center text-[9px] font-black text-slate-400 flex-shrink-0">{teamB?.name?.charAt(0) ?? '?'}</div>
+          }
+          <span className="font-bold text-slate-700 text-[11px] truncate">{teamB?.name ?? '---'}</span>
+        </div>
+        {match.status === 'finished' && hasEvents && (
+          <span className="text-[9px] text-slate-400 flex-shrink-0 ml-1">{isExpanded ? '▲' : '▼'}</span>
+        )}
+      </div>
+
+      {/* Pannello espandibile con referto */}
+      {isExpanded && (
+        <div className="border-t border-slate-100 px-3 py-3 grid grid-cols-2 gap-3 bg-slate-50">
+          {/* Colonna squadra A */}
+          <div className="space-y-1">
+            <div className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-2">{teamA?.name}</div>
+            {goalsA.map(e => (
+              <div key={e.id} className="flex items-center gap-1.5 text-[11px]">
+                <span className="w-4 h-4 bg-emerald-100 text-emerald-600 rounded flex items-center justify-center text-[8px] font-black flex-shrink-0">G</span>
+                <span className="text-slate-700 font-medium truncate">{getPlayerInfo(e.playerId).name}</span>
+              </div>
+            ))}
+            {assistsA.map(e => (
+              <div key={e.id} className="flex items-center gap-1.5 text-[11px]">
+                <span className="w-4 h-4 bg-blue-100 text-blue-600 rounded flex items-center justify-center text-[8px] font-black flex-shrink-0">A</span>
+                <span className="text-slate-700 font-medium truncate">{getPlayerInfo(e.playerId).name}</span>
+              </div>
+            ))}
+            {goalsA.length === 0 && assistsA.length === 0 && (
+              <div className="text-[10px] text-slate-300 italic">Nessun evento</div>
+            )}
+          </div>
+          {/* Colonna squadra B */}
+          <div className="space-y-1">
+            <div className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-2">{teamB?.name}</div>
+            {goalsB.map(e => (
+              <div key={e.id} className="flex items-center gap-1.5 text-[11px]">
+                <span className="w-4 h-4 bg-emerald-100 text-emerald-600 rounded flex items-center justify-center text-[8px] font-black flex-shrink-0">G</span>
+                <span className="text-slate-700 font-medium truncate">{getPlayerInfo(e.playerId).name}</span>
+              </div>
+            ))}
+            {goalsB.map(e => (
+              <div key={e.id} className="flex items-center gap-1.5 text-[11px]">
+                <span className="w-4 h-4 bg-blue-100 text-blue-600 rounded flex items-center justify-center text-[8px] font-black flex-shrink-0">A</span>
+                <span className="text-slate-700 font-medium truncate">{getPlayerInfo(e.playerId).name}</span>
+              </div>
+            ))}
+            {goalsB.length === 0 && assistsB.length === 0 && (
+              <div className="text-[10px] text-slate-300 italic">Nessun evento</div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+})}
                   </div>
                 </div>
               )}
