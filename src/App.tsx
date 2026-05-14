@@ -329,7 +329,7 @@ function PrivateApp() {
       });
       return { pA, pB, drA };
     };
-    return Object.values(stats).sort((a: any, b: any) => { if (b.pts !== a.pts) return b.pts - a.pts; const h = h2h(a, b); if (h.pA !== h.pB) return h.pB - h.pA; if (h.drA !== 0) return -h.drA; return (b.gf - b.ga) - (a.gf - a.ga); });
+    return Object.values(stats).sort((a: any, b: any) => { if (b.pts !== a.pts) return b.pts - a.pts; const drA = (a.gf - a.ga); const drB = (b.gf - b.ga); if (drA !== drB) return drB - drA; const h = h2h(a, b); if (h.pA !== h.pB) return h.pB - h.pA; return -h.drA; });
   }, [matches, currentTournamentTeams, activeTournamentId]);
 
   const scorerStats = useMemo(() => {
