@@ -527,9 +527,21 @@ function PrivateApp() {
                         const tA = teams.find(t => t.id === match.teamAId); const tB = teams.find(t => t.id === match.teamBId);
                         return (
                           <div key={match.id} onClick={() => setSelectedMatchId(match.id)} className="bg-white p-3 rounded-2xl shadow-sm border border-slate-200 w-44 cursor-pointer hover:border-indigo-400 transition-all space-y-2">
-                            <div className="flex justify-between items-center"><span className={`text-xs font-bold truncate flex-1 ${match.status === 'finished' && match.scoreA > match.scoreB ? 'text-indigo-600' : 'text-slate-600'}`}>{tA?.name || '---'}</span><span className="font-black text-slate-900 ml-1 text-sm">{match.status === 'finished' ? match.scoreA : '-'}</span></div>
-                            <div className="h-px bg-slate-100" />
-                            <div className="flex justify-between items-center"><span className={`text-xs font-bold truncate flex-1 ${match.status === 'finished' && match.scoreB > match.scoreA ? 'text-indigo-600' : 'text-slate-600'}`}>{tB?.name || '---'}</span><span className="font-black text-slate-900 ml-1 text-sm">{match.status === 'finished' ? match.scoreB : '-'}</span></div>
+                            <div className="flex justify-between items-center">
+  <span className={`text-xs font-bold truncate flex-1 ${match.status === 'finished' && match.scoreA > match.scoreB ? 'text-indigo-600' : match.status === 'finished' && match.scoreA === match.scoreB && match.winnerId === match.teamAId ? 'text-indigo-600' : 'text-slate-600'}`}>{tA?.name || '---'}</span>
+  {match.status === 'finished' && match.scoreA === match.scoreB && match.winnerId === match.teamAId && (
+    <span className="text-[9px] font-black px-1.5 py-0.5 rounded-md bg-indigo-100 text-indigo-600 ml-1 flex-shrink-0">{match.overtimeType === 'penalties' ? 'R' : 'S'}</span>
+  )}
+  <span className="font-black text-slate-900 ml-1 text-sm">{match.status === 'finished' ? match.scoreA : '-'}</span>
+</div>
+<div className="h-px bg-slate-100" />
+<div className="flex justify-between items-center">
+  <span className={`text-xs font-bold truncate flex-1 ${match.status === 'finished' && match.scoreB > match.scoreA ? 'text-indigo-600' : match.status === 'finished' && match.scoreA === match.scoreB && match.winnerId === match.teamBId ? 'text-indigo-600' : 'text-slate-600'}`}>{tB?.name || '---'}</span>
+  {match.status === 'finished' && match.scoreA === match.scoreB && match.winnerId === match.teamBId && (
+    <span className="text-[9px] font-black px-1.5 py-0.5 rounded-md bg-indigo-100 text-indigo-600 ml-1 flex-shrink-0">{match.overtimeType === 'penalties' ? 'R' : 'S'}</span>
+  )}
+  <span className="font-black text-slate-900 ml-1 text-sm">{match.status === 'finished' ? match.scoreB : '-'}</span>
+</div>
                           </div>
                         );
                       })}
