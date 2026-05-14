@@ -88,7 +88,7 @@ function PrivateApp() {
       if (ttData) setTournamentTeams(prev => [...prev.filter(tt => tt.tournamentId !== tournamentId), ...ttData.map((tt: any) => ({ tournamentId: tt.tournament_id, teamId: tt.club_id }))]);
       const { data: matchesData } = await supabase.from('matches').select('*').eq('tournament_id', tournamentId).order('round', { ascending: true });
       if (matchesData) {
-        setMatches(prev => [...prev.filter(m => m.tournamentId !== tournamentId), ...matchesData.map((m: any) => ({ id: m.id, tournamentId: m.tournament_id, teamAId: m.team_a_id, teamBId: m.team_b_id, scoreA: m.score_a, scoreB: m.score_b, status: m.status, round: m.round, matchType: m.match_type, isReturnMatch: m.is_return_match, nextMatchId: m.next_match_id, positionInRound: m.position_in_round }))]);
+        setMatches(prev => [...prev.filter(m => m.tournamentId !== tournamentId), ...matchesData.map((m: any) => ({ id: m.id, tournamentId: m.tournament_id, teamAId: m.team_a_id, teamBId: m.team_b_id, scoreA: m.score_a, scoreB: m.score_b, status: m.status, round: m.round, matchType: m.match_type, isReturnMatch: m.is_return_match, nextMatchId: m.next_match_id, positionInRound: m.position_in_round, overtimeType: m.overtime_type, winnerId: m.winner_id }))]);
         const matchIds = matchesData.map((m: any) => m.id);
         if (matchIds.length > 0) {
           const { data: eventsData } = await supabase.from('match_events').select('*').in('match_id', matchIds);
