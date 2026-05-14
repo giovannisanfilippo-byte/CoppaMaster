@@ -180,7 +180,8 @@ export const GroupTournaments = ({ onBack, onTournamentCreated, existingTourname
   const getGroupStandings = (group: any) => {
     const stats: Record<string, any> = {};
     group.teams.forEach((t: any) => { stats[t.id] = { id: t.id, name: t.name, groupName: group.name, p: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, pts: 0 }; });
-    group.matches.filter((m: any) => m.played).forEach((m: any) => {
+    const fm = group.matches.filter((m: any) => m.played);
+    fm.forEach((m: any) => {
       const sA = stats[m.teamA?.id]; const sB = stats[m.teamB?.id];
       if (!sA || !sB) return;
       sA.p++; sB.p++;
@@ -190,7 +191,22 @@ export const GroupTournaments = ({ onBack, onTournamentCreated, existingTourname
       else if (m.scoreB > m.scoreA) { sB.w++; sA.l++; sB.pts += 3; }
       else { sA.d++; sB.d++; sA.pts++; sB.pts++; }
     });
-    return Object.values(stats).sort((a: any, b: any) => b.pts - a.pts || (b.gf - b.ga) - (a.gf - a.ga));
+    const h2h = (a: any, b: any) => {
+      let pA = 0, pB = 0, drA = 0;
+      fm.filter((m: any) => (m.teamA?.id === a.id && m.teamB?.id === b.id) || (m.teamA?.id === b.id && m.teamB?.id === a.id)).forEach((m: any) => {
+        if (m.teamA?.id === a.id) { drA += m.scoreA - m.scoreB; if (m.scoreA > m.scoreB) pA += 3; else if (m.scoreA === m.scoreB) { pA++; pB++; } else pB += 3; }
+        else { drA += m.scoreB - m.scoreA; if (m.scoreB > m.scoreA) pA += 3; else if (m.scoreA === m.scoreB) { pA++; pB++; } else pB += 3; }
+      });
+      return { pA, pB, drA };
+    };
+    return Object.values(stats).sort((a: any, b: any) => {
+      if (b.pts !== a.pts) return b.pts - a.pts;
+      const drA = (a.gf - a.ga); const drB = (b.gf - b.ga);
+      if (drA !== drB) return drB - drA;
+      const h = h2h(a, b);
+      if (h.pA !== h.pB) return h.pB - h.pA;
+      return -h.drA;
+    });
   };
 
   const allGroupMatchesPlayed = () => {
