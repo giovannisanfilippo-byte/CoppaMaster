@@ -21,6 +21,8 @@ export function MatchReportForm({ match, teams, players, events, onUpdateScore, 
   const [isConfirmResetOpen, setIsConfirmResetOpen] = useState(false);
   const [overtimeType, setOvertimeType] = useState<string>(match.overtimeType || '');
   const [overtimeWinnerId, setOvertimeWinnerId] = useState<string>(match.winnerId || '');
+  const [extraTimeA, setExtraTimeA] = useState<number>(match.extraTimeA || 0);
+  const [extraTimeB, setExtraTimeB] = useState<number>(match.extraTimeB || 0);
 
   const teamA = teams.find((t: any) => t.id === match.teamAId);
   const teamB = teams.find((t: any) => t.id === match.teamBId);
@@ -37,8 +39,15 @@ export function MatchReportForm({ match, teams, players, events, onUpdateScore, 
   const handleSave = () => {
   const isDraw = scoreA === scoreB;
   const isKnockout = match.matchType === 'bracket_match';
-  if (isDraw && isKnockout && (!overtimeType || !overtimeWinnerId)) return;
-  onUpdateScore(scoreA, scoreB, isDraw && isKnockout ? overtimeType : undefined, isDraw && isKnockout ? overtimeWinnerId : undefined);
+  if (isDraw && isKnockout && !overtimeType) return;
+
+  const totalA = scoreA + (overtimeType === 'extra_time' ? extraTimeA : 0);
+  const totalB = scoreB + (overtimeType === 'extra_time' ? extraTimeB : 0);
+  const autoWinner = totalA > totalB ? match.teamAId : totalB > totalA ? match.teamBId : null;
+  const finalWinnerId = autoWinner || (isDraw && isKnockout ? overtimeWinnerId : undefined);
+
+  if (isDraw && isKnockout && !finalWinnerId) return;
+  onUpdateScore(totalA, totalB, isDraw && isKnockout ? overtimeType : undefined, finalWinnerId || undefined);
   onClose();
 };
 
@@ -105,31 +114,61 @@ export function MatchReportForm({ match, teams, players, events, onUpdateScore, 
   <div className="p-4 bg-indigo-50 border border-indigo-100 rounded-2xl space-y-3">
     <p className="text-indigo-700 text-xs font-black uppercase tracking-widest">Pareggio — Come si decide?</p>
     <div className="flex gap-2">
-      <button
-        type="button"
-        onClick={() => setOvertimeType('extra_time')}
-        className={`flex-1 py-2 rounded-xl text-xs font-black border transition-all ${overtimeType === 'extra_time' ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-indigo-600 border-indigo-200'}`}
-      >⏱ Supplementari</button>
-      <button
-        type="button"
-        onClick={() => setOvertimeType('penalties')}
-        className={`flex-1 py-2 rounded-xl text-xs font-black border transition-all ${overtimeType === 'penalties' ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-indigo-600 border-indigo-200'}`}
-      >🥅 Rigori</button>
+      <button type="button" onClick={() => { setOvertimeType('extra_time'); setExtraTimeA(0); setExtraTimeB(0); setOvertimeWinnerId(''); }}
+        className={`flex-1 py-2 rounded-xl text-xs font-black border transition-all ${overtimeType === 'extra_time' ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-indigo-600 border-indigo-200'}`}>
+        ⏱ Supplementari</button>
+      <button type="button" onClick={() => { setOvertimeType('penalties'); setExtraTimeA(0); setExtraTimeB(0); }}
+        className={`flex-1 py-2 rounded-xl text-xs font-black border transition-all ${overtimeType === 'penalties' ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-indigo-600 border-indigo-200'}`}>
+        🥅 Rigori</button>
     </div>
-    {overtimeType && (
+
+    {overtimeType === 'extra_time' && (
+      <div className="space-y-3">
+        <p className="text-indigo-600 text-[10px] font-black uppercase tracking-widest">Gol supplementari</p>
+        <div className="flex gap-4">
+          <div className="flex-1 text-center space-y-1">
+            <p className="text-[10px] text-slate-500 font-bold truncate">{teamA?.name}</p>
+            <div className="flex items-center justify-center gap-2">
+              <button type="button" onClick={() => setExtraTimeA(Math.max(0, extraTimeA - 1))} className="w-7 h-7 rounded-lg bg-white border border-slate-200 font-black text-slate-600">-</button>
+              <span className="w-8 text-center font-black text-lg text-slate-900">{extraTimeA}</span>
+              <button type="button" onClick={() => setExtraTimeA(extraTimeA + 1)} className="w-7 h-7 rounded-lg bg-white border border-slate-200 font-black text-slate-600">+</button>
+            </div>
+          </div>
+          <div className="flex-1 text-center space-y-1">
+            <p className="text-[10px] text-slate-500 font-bold truncate">{teamB?.name}</p>
+            <div className="flex items-center justify-center gap-2">
+              <button type="button" onClick={() => setExtraTimeB(Math.max(0, extraTimeB - 1))} className="w-7 h-7 rounded-lg bg-white border border-slate-200 font-black text-slate-600">-</button>
+              <span className="w-8 text-center font-black text-lg text-slate-900">{extraTimeB}</span>
+              <button type="button" onClick={() => setExtraTimeB(extraTimeB + 1)} className="w-7 h-7 rounded-lg bg-white border border-slate-200 font-black text-slate-600">+</button>
+            </div>
+          </div>
+        </div>
+        {extraTimeA === extraTimeB && (
+          <div className="space-y-2">
+            <p className="text-amber-600 text-[10px] font-bold">⚠️ Parità anche ai supplementari — chi passa?</p>
+            <div className="flex gap-2">
+              <button type="button" onClick={() => setOvertimeWinnerId(match.teamAId)}
+                className={`flex-1 py-2 rounded-xl text-xs font-black border transition-all ${overtimeWinnerId === match.teamAId ? 'bg-emerald-500 text-white border-emerald-500' : 'bg-white text-slate-600 border-slate-200'}`}>
+                {teamA?.name}</button>
+              <button type="button" onClick={() => setOvertimeWinnerId(match.teamBId)}
+                className={`flex-1 py-2 rounded-xl text-xs font-black border transition-all ${overtimeWinnerId === match.teamBId ? 'bg-emerald-500 text-white border-emerald-500' : 'bg-white text-slate-600 border-slate-200'}`}>
+                {teamB?.name}</button>
+            </div>
+          </div>
+        )}
+      </div>
+    )}
+
+    {overtimeType === 'penalties' && (
       <div>
         <p className="text-indigo-600 text-[10px] font-black uppercase tracking-widest mb-2">Chi passa il turno?</p>
         <div className="flex gap-2">
-          <button
-            type="button"
-            onClick={() => setOvertimeWinnerId(match.teamAId)}
-            className={`flex-1 py-2 rounded-xl text-xs font-black border transition-all ${overtimeWinnerId === match.teamAId ? 'bg-emerald-500 text-white border-emerald-500' : 'bg-white text-slate-600 border-slate-200'}`}
-          >{teamA?.name}</button>
-          <button
-            type="button"
-            onClick={() => setOvertimeWinnerId(match.teamBId)}
-            className={`flex-1 py-2 rounded-xl text-xs font-black border transition-all ${overtimeWinnerId === match.teamBId ? 'bg-emerald-500 text-white border-emerald-500' : 'bg-white text-slate-600 border-slate-200'}`}
-          >{teamB?.name}</button>
+          <button type="button" onClick={() => setOvertimeWinnerId(match.teamAId)}
+            className={`flex-1 py-2 rounded-xl text-xs font-black border transition-all ${overtimeWinnerId === match.teamAId ? 'bg-emerald-500 text-white border-emerald-500' : 'bg-white text-slate-600 border-slate-200'}`}>
+            {teamA?.name}</button>
+          <button type="button" onClick={() => setOvertimeWinnerId(match.teamBId)}
+            className={`flex-1 py-2 rounded-xl text-xs font-black border transition-all ${overtimeWinnerId === match.teamBId ? 'bg-emerald-500 text-white border-emerald-500' : 'bg-white text-slate-600 border-slate-200'}`}>
+            {teamB?.name}</button>
         </div>
       </div>
     )}
