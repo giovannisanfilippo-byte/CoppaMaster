@@ -152,10 +152,14 @@ export async function saveMatches(matches: any[]) {
 /**
  * Updates a match score and status.
  */
-export async function updateMatchScoreDB(matchId: string, scoreA: number, scoreB: number, status: string = 'finished') {
+export async function updateMatchScoreDB(matchId: string, scoreA: number, scoreB: number, status: string = 'finished', overtimeType?: string, winnerId?: string) {
   const { error } = await supabase
     .from('matches')
-    .update({ score_a: scoreA, score_b: scoreB, status })
+    .update({ 
+      score_a: scoreA, score_b: scoreB, status,
+      ...(overtimeType && { overtime_type: overtimeType }),
+      ...(winnerId && { winner_id: winnerId })
+    })
     .eq('id', matchId);
 
   if (error) throw error;
