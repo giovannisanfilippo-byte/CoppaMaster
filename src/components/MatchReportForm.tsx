@@ -8,7 +8,7 @@ interface MatchReportFormProps {
   teams: any[];
   players: any[];
   events: any[];
-  onUpdateScore: (scoreA: number, scoreB: number) => void;
+  onUpdateScore: (scoreA: number, scoreB: number, overtimeType?: string, winnerId?: string) => void;
   onAddEvent: (playerId: string, type: 'gol' | 'assist') => void;
   onRemoveEvent: (eventId: string) => void;
   onResetMatch: () => void;
@@ -19,6 +19,8 @@ export function MatchReportForm({ match, teams, players, events, onUpdateScore, 
   const [scoreA, setScoreA] = useState(match.scoreA);
   const [scoreB, setScoreB] = useState(match.scoreB);
   const [isConfirmResetOpen, setIsConfirmResetOpen] = useState(false);
+  const [overtimeType, setOvertimeType] = useState<string>('');
+  const [overtimeWinnerId, setOvertimeWinnerId] = useState<string>('');
 
   const teamA = teams.find((t: any) => t.id === match.teamAId);
   const teamB = teams.find((t: any) => t.id === match.teamBId);
@@ -33,9 +35,12 @@ export function MatchReportForm({ match, teams, players, events, onUpdateScore, 
   const isValidB = teamBGoals === scoreB;
 
   const handleSave = () => {
-    onUpdateScore(scoreA, scoreB);
-    onClose();
-  };
+  const isDraw = scoreA === scoreB;
+  const isKnockout = match.matchType === 'bracket_match';
+  if (isDraw && isKnockout && (!overtimeType || !overtimeWinnerId)) return;
+  onUpdateScore(scoreA, scoreB, isDraw && isKnockout ? overtimeType : undefined, isDraw && isKnockout ? overtimeWinnerId : undefined);
+  onClose();
+};
 
   const handleReset = () => {
     onResetMatch();
@@ -96,6 +101,40 @@ export function MatchReportForm({ match, teams, players, events, onUpdateScore, 
                 </p>
               </div>
             )}
+            {scoreA === scoreB && match.matchType === 'bracket_match' && (
+  <div className="p-4 bg-indigo-50 border border-indigo-100 rounded-2xl space-y-3">
+    <p className="text-indigo-700 text-xs font-black uppercase tracking-widest">Pareggio — Come si decide?</p>
+    <div className="flex gap-2">
+      <button
+        type="button"
+        onClick={() => setOvertimeType('extra_time')}
+        className={`flex-1 py-2 rounded-xl text-xs font-black border transition-all ${overtimeType === 'extra_time' ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-indigo-600 border-indigo-200'}`}
+      >⏱ Supplementari</button>
+      <button
+        type="button"
+        onClick={() => setOvertimeType('penalties')}
+        className={`flex-1 py-2 rounded-xl text-xs font-black border transition-all ${overtimeType === 'penalties' ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-indigo-600 border-indigo-200'}`}
+      >🥅 Rigori</button>
+    </div>
+    {overtimeType && (
+      <div>
+        <p className="text-indigo-600 text-[10px] font-black uppercase tracking-widest mb-2">Chi passa il turno?</p>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => setOvertimeWinnerId(match.teamAId)}
+            className={`flex-1 py-2 rounded-xl text-xs font-black border transition-all ${overtimeWinnerId === match.teamAId ? 'bg-emerald-500 text-white border-emerald-500' : 'bg-white text-slate-600 border-slate-200'}`}
+          >{teamA?.name}</button>
+          <button
+            type="button"
+            onClick={() => setOvertimeWinnerId(match.teamBId)}
+            className={`flex-1 py-2 rounded-xl text-xs font-black border transition-all ${overtimeWinnerId === match.teamBId ? 'bg-emerald-500 text-white border-emerald-500' : 'bg-white text-slate-600 border-slate-200'}`}
+          >{teamB?.name}</button>
+        </div>
+      </div>
+    )}
+  </div>
+)}
             <div className="grid md:grid-cols-2 gap-8">
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
@@ -137,12 +176,13 @@ export function MatchReportForm({ match, teams, players, events, onUpdateScore, 
               <button onClick={onClose} className="px-6 py-3 rounded-2xl font-black text-sm text-slate-400 hover:text-slate-600 transition-colors">
                 Annulla
               </button>
-              <button 
-                onClick={handleSave}
-                className="bg-indigo-600 text-white px-8 py-3 rounded-2xl font-black text-sm shadow-xl shadow-indigo-600/20 flex items-center gap-2 hover:bg-indigo-700 transition-all"
-              >
-                <Save className="w-4 h-4" /> Salva Risultato
-              </button>
+              <button
+  onClick={handleSave}
+  disabled={scoreA === scoreB && match.matchType === 'bracket_match' && (!overtimeType || !overtimeWinnerId)}
+  className="bg-indigo-600 text-white px-8 py-3 rounded-2xl font-black text-sm shadow-xl shadow-indigo-600/20 flex items-center gap-2 hover:bg-indigo-700 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+>
+  <Save className="w-4 h-4" /> Salva Risultato
+</button>
             </div>
           </div>
         </motion.div>
