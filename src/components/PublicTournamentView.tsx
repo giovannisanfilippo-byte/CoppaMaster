@@ -320,25 +320,28 @@ export function PublicTournamentView() {
                         return (
                           <div key={match.id} className="bg-white rounded-2xl shadow-sm border border-slate-200 w-48 overflow-hidden">
   <div className="flex items-center justify-between px-3 py-2">
-    <div className="flex items-center gap-1.5 min-w-0">
-      {teamA?.logoUrl && <img src={teamA.logoUrl} alt="" className="w-5 h-5 rounded object-cover flex-shrink-0 border border-slate-100" />}
-      <span className={`text-xs font-bold truncate ${match.status === 'finished' && match.scoreA > match.scoreB ? 'text-indigo-600' : match.status === 'finished' && match.scoreA === match.scoreB && match.winnerId === match.teamAId ? 'text-indigo-600' : 'text-slate-600'}`}>{teamA?.name || '---'}</span>
-      {match.status === 'finished' && match.overtimeType && match.winnerId === match.teamAId && (
-        <span className="text-[9px] font-black px-1.5 py-0.5 rounded-md bg-indigo-100 text-indigo-600 flex-shrink-0 ml-1">{match.overtimeType === 'penalties' ? 'R' : 'S'}</span>
-      )}
-    </div>
-    <span className="font-black text-slate-900 ml-2 text-sm flex-shrink-0">{match.status === 'finished' ? match.scoreA : '-'}</span>
+  <div className="flex items-center gap-1.5 min-w-0">
+    {teamA?.logoUrl && <img src={teamA.logoUrl} alt="" className="w-5 h-5 rounded object-cover flex-shrink-0 border border-slate-100" />}
+    <span className={`text-xs font-bold truncate ${match.status === 'finished' && match.scoreA > match.scoreB ? 'text-indigo-600' : match.status === 'finished' && match.overtimeType && match.winnerId === match.teamAId ? 'text-indigo-600' : 'text-slate-600'}`}>{teamA?.name || '---'}</span>
   </div>
-  <div className="h-px bg-slate-100" />
-  <div className="flex items-center justify-between px-3 py-2">
-    <div className="flex items-center gap-1.5 min-w-0">
-      {teamB?.logoUrl && <img src={teamB.logoUrl} alt="" className="w-5 h-5 rounded object-cover flex-shrink-0 border border-slate-100" />}
-      <span className={`text-xs font-bold truncate ${match.status === 'finished' && match.scoreB > match.scoreA ? 'text-indigo-600' : match.status === 'finished' && match.scoreA === match.scoreB && match.winnerId === match.teamBId ? 'text-indigo-600' : 'text-slate-600'}`}>{teamB?.name || '---'}</span>
-      {match.status === 'finished' && match.overtimeType && match.winnerId === match.teamBId && (
-        <span className="text-[9px] font-black px-1.5 py-0.5 rounded-md bg-indigo-100 text-indigo-600 flex-shrink-0 ml-1">{match.overtimeType === 'penalties' ? 'R' : 'S'}</span>
-      )}
-    </div>
-    <span className="font-black text-slate-900 ml-2 text-sm flex-shrink-0">{match.status === 'finished' ? match.scoreB : '-'}</span>
+  <div className="flex items-center gap-1 flex-shrink-0">
+    {match.status === 'finished' && match.overtimeType && match.winnerId === match.teamAId && (
+      <span className="text-[9px] font-black px-1.5 py-0.5 rounded-md bg-indigo-100 text-indigo-600">{match.overtimeType === 'penalties' ? 'R' : 'S'}</span>
+    )}
+    <span className="font-black text-slate-900 ml-1 text-sm">{match.status === 'finished' ? match.scoreA : '-'}</span>
+  </div>
+</div>
+<div className="h-px bg-slate-100" />
+<div className="flex items-center justify-between px-3 py-2">
+  <div className="flex items-center gap-1.5 min-w-0">
+    {teamB?.logoUrl && <img src={teamB.logoUrl} alt="" className="w-5 h-5 rounded object-cover flex-shrink-0 border border-slate-100" />}
+    <span className={`text-xs font-bold truncate ${match.status === 'finished' && match.scoreB > match.scoreA ? 'text-indigo-600' : match.status === 'finished' && match.overtimeType && match.winnerId === match.teamBId ? 'text-indigo-600' : 'text-slate-600'}`}>{teamB?.name || '---'}</span>
+  </div>
+  <div className="flex items-center gap-1 flex-shrink-0">
+    {match.status === 'finished' && match.overtimeType && match.winnerId === match.teamBId && (
+      <span className="text-[9px] font-black px-1.5 py-0.5 rounded-md bg-indigo-100 text-indigo-600">{match.overtimeType === 'penalties' ? 'R' : 'S'}</span>
+    )}
+    <span className="font-black text-slate-900 ml-1 text-sm">{match.status === 'finished' ? match.scoreB : '-'}</span>
   </div>
 </div>
                         );
