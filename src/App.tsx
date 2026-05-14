@@ -290,7 +290,7 @@ function PrivateApp() {
 
   const updateMatchScore = async (matchId: string, scoreA: number, scoreB: number, overtimeType?: string, overrideWinnerId?: string) => {
     try {
-      await updateMatchScoreDB(matchId, scoreA, scoreB, overtimeType, overrideWinnerId);
+      await updateMatchScoreDB(matchId, scoreA, scoreB, 'finished', overtimeType, overrideWinnerId);
       const um = matches.map(m => m.id === matchId ? { ...m, scoreA, scoreB, status: 'finished' as const } : m);
       if (tournament?.type === 'knockout') {
         const match = um.find(m => m.id === matchId);
