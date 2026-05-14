@@ -19,8 +19,8 @@ export function MatchReportForm({ match, teams, players, events, onUpdateScore, 
   const [scoreA, setScoreA] = useState(match.scoreA);
   const [scoreB, setScoreB] = useState(match.scoreB);
   const [isConfirmResetOpen, setIsConfirmResetOpen] = useState(false);
-  const [overtimeType, setOvertimeType] = useState<string>('');
-  const [overtimeWinnerId, setOvertimeWinnerId] = useState<string>('');
+  const [overtimeType, setOvertimeType] = useState<string>(match.overtimeType || '');
+  const [overtimeWinnerId, setOvertimeWinnerId] = useState<string>(match.winnerId || '');
 
   const teamA = teams.find((t: any) => t.id === match.teamAId);
   const teamB = teams.find((t: any) => t.id === match.teamBId);
