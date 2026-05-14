@@ -288,14 +288,14 @@ function PrivateApp() {
   } catch (error) { console.error('Error resetting match:', error); }
 };
 
-  const updateMatchScore = async (matchId: string, scoreA: number, scoreB: number) => {
+  const updateMatchScore = async (matchId: string, scoreA: number, scoreB: number, overtimeType?: string, overrideWinnerId?: string) => {
     try {
-      await updateMatchScoreDB(matchId, scoreA, scoreB);
+      await updateMatchScoreDB(matchId, scoreA, scoreB, overtimeType, overrideWinnerId);
       const um = matches.map(m => m.id === matchId ? { ...m, scoreA, scoreB, status: 'finished' as const } : m);
       if (tournament?.type === 'knockout') {
         const match = um.find(m => m.id === matchId);
         if (match && match.nextMatchId) {
-          const winnerId = scoreA > scoreB ? match.teamAId : scoreB > scoreA ? match.teamBId : null;
+          const winnerId = scoreA > scoreB ? match.teamAId : scoreB > scoreA ? match.teamBId : overrideWinnerId ?? null;
           if (winnerId) {
             const ni = um.findIndex(m => m.id === match.nextMatchId);
             if (ni !== -1) {
@@ -543,7 +543,7 @@ function PrivateApp() {
       </main>
 
       <AnimatePresence>
-        {selectedMatchId && <MatchReportForm match={matches.find(m => m.id === selectedMatchId)!} teams={teams} players={players} events={events.filter(e => e.matchId === selectedMatchId)} onUpdateScore={(sA, sB) => updateMatchScore(selectedMatchId, sA, sB)} onAddEvent={(pId, type) => addMatchEvent(selectedMatchId, pId, type)} onRemoveEvent={removeMatchEvent} onResetMatch={() => resetMatch(selectedMatchId!)} onClose={() => setSelectedMatchId(null)} />}
+        {selectedMatchId && <MatchReportForm match={matches.find(m => m.id === selectedMatchId)!} teams={teams} players={players} events={events.filter(e => e.matchId === selectedMatchId)} onUpdateScore={(sA, sB, ot, wId) => updateMatchScore(selectedMatchId, sA, sB, ot, wId)} onAddEvent={(pId, type) => addMatchEvent(selectedMatchId, pId, type)} onRemoveEvent={removeMatchEvent} onResetMatch={() => resetMatch(selectedMatchId!)} onClose={() => setSelectedMatchId(null)} />}
       </AnimatePresence>
 
       {isReplaceTeamOpen && (
