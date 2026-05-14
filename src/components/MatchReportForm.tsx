@@ -217,7 +217,14 @@ export function MatchReportForm({ match, teams, players, events, onUpdateScore, 
               </button>
               <button
   onClick={handleSave}
-  disabled={scoreA === scoreB && match.matchType === 'bracket_match' && (!overtimeType || !overtimeWinnerId)}
+  disabled={
+  scoreA === scoreB && 
+  match.matchType === 'bracket_match' && 
+  (!overtimeType || 
+    (overtimeType === 'extra_time' && extraTimeA === extraTimeB && !overtimeWinnerId) ||
+    (overtimeType === 'penalties' && !overtimeWinnerId)
+  )
+}
   className="bg-indigo-600 text-white px-8 py-3 rounded-2xl font-black text-sm shadow-xl shadow-indigo-600/20 flex items-center gap-2 hover:bg-indigo-700 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
 >
   <Save className="w-4 h-4" /> Salva Risultato
