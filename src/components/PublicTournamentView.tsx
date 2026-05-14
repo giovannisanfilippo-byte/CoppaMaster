@@ -344,6 +344,7 @@ export function PublicTournamentView() {
     <span className="font-black text-slate-900 ml-1 text-sm">{match.status === 'finished' ? match.scoreB : '-'}</span>
   </div>
 </div>
+                            </div>
                         );
                       })}
                     </div>
