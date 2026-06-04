@@ -72,17 +72,33 @@ export function PublicTournamentView() {
   };
 
   const standings = useMemo(() => {
-    if (!tournament || tournament.type !== 'league') return [];
-    const stats: Record<string, any> = {};
-    teams.forEach(t => { stats[t.id] = { name: t.name, logoUrl: t.logoUrl, p: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, pts: 0 }; });
-    matches.filter(m => m.status === 'finished' && m.matchType === 'league_match').forEach(m => {
-      if (!m.teamAId || !m.teamBId) return;
-      const sA = stats[m.teamAId]; const sB = stats[m.teamBId]; if (!sA || !sB) return;
-      sA.p++; sB.p++; sA.gf += m.scoreA; sA.ga += m.scoreB; sB.gf += m.scoreB; sB.ga += m.scoreA;
-      if (m.scoreA > m.scoreB) { sA.w++; sB.l++; sA.pts += 3; } else if (m.scoreB > m.scoreA) { sB.w++; sA.l++; sB.pts += 3; } else { sA.d++; sB.d++; sA.pts += 1; sB.pts += 1; }
+  if (!tournament || tournament.type !== 'league') return [];
+  const stats: Record<string, any> = {};
+  teams.forEach(t => { stats[t.id] = { id: t.id, name: t.name, logoUrl: t.logoUrl, p: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, pts: 0 }; });
+  const fm = matches.filter(m => m.status === 'finished' && m.matchType === 'league_match');
+  fm.forEach(m => {
+    if (!m.teamAId || !m.teamBId) return;
+    const sA = stats[m.teamAId]; const sB = stats[m.teamBId]; if (!sA || !sB) return;
+    sA.p++; sB.p++; sA.gf += m.scoreA; sA.ga += m.scoreB; sB.gf += m.scoreB; sB.ga += m.scoreA;
+    if (m.scoreA > m.scoreB) { sA.w++; sB.l++; sA.pts += 3; } else if (m.scoreB > m.scoreA) { sB.w++; sA.l++; sB.pts += 3; } else { sA.d++; sB.d++; sA.pts += 1; sB.pts += 1; }
+  });
+  const h2h = (a: any, b: any) => {
+    let pA = 0, pB = 0, drA = 0;
+    fm.filter(m => (m.teamAId === a.id && m.teamBId === b.id) || (m.teamAId === b.id && m.teamBId === a.id)).forEach(m => {
+      if (m.teamAId === a.id) { drA += m.scoreA - m.scoreB; if (m.scoreA > m.scoreB) pA += 3; else if (m.scoreA === m.scoreB) { pA++; pB++; } else pB += 3; }
+      else { drA += m.scoreB - m.scoreA; if (m.scoreB > m.scoreA) pA += 3; else if (m.scoreA === m.scoreB) { pA++; pB++; } else pB += 3; }
     });
-    return Object.values(stats).sort((a: any, b: any) => b.pts - a.pts || (b.gf - b.ga) - (a.gf - a.ga));
-  }, [matches, teams, tournament]);
+    return { pA, pB, drA };
+  };
+  return Object.values(stats).sort((a: any, b: any) => {
+    if (b.pts !== a.pts) return b.pts - a.pts;
+    const drA = (a.gf - a.ga); const drB = (b.gf - b.ga);
+    if (drA !== drB) return drB - drA;
+    const h = h2h(a, b);
+    if (h.pA !== h.pB) return h.pB - h.pA;
+    return -h.drA;
+  });
+}, [matches, teams, tournament]);
 
   const scorerStats = useMemo(() => {
     const stats: Record<string, any> = {};
