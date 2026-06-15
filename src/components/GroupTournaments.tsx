@@ -513,6 +513,7 @@ export const GroupTournaments = ({ onBack, onTournamentCreated, existingTourname
                         ))}
                       </tbody>
                     </table>
+                    </div>
                     <div className="mt-3 flex gap-3 text-[10px] font-bold text-slate-400">
                       <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-emerald-500 inline-block"></span> Qualificati</span>
                       {groups.length >= 3 && <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-amber-400 inline-block"></span> Possibile terza</span>}
