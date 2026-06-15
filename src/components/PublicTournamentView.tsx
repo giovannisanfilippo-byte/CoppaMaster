@@ -138,6 +138,32 @@ export function PublicTournamentView() {
 }, [matches, teams]);
 
 const isGironi = groupStandings.length > 0;
+  const groupSchedules = useMemo(() => {
+  return groupStandings.map(g => {
+    const groupName = g.groupName;
+    const gm = matches.filter(m => m.matchType === `girone_${groupName}`);
+    const andataMatches = gm.filter(m => !m.isReturnMatch);
+    const ritornoMatches = gm.filter(m => m.isReturnMatch);
+
+    let teamList: any[] = g.standings.map((s: any) => ({ id: s.id }));
+    if (teamList.length % 2 !== 0) teamList.push(null);
+    const numTeams = teamList.length;
+    const giornate: any[][] = [];
+    const tl = [...teamList];
+    for (let round = 0; round < numTeams - 1; round++) {
+      const roundPairs: any[] = [];
+      for (let i = 0; i < numTeams / 2; i++) {
+        if (tl[i] && tl[numTeams - 1 - i]) {
+          roundPairs.push({ homeId: tl[i].id, awayId: tl[numTeams - 1 - i].id });
+        }
+      }
+      giornate.push(roundPairs);
+      tl.splice(1, 0, tl.pop()!);
+    }
+
+    return { groupName, andataMatches, ritornoMatches, giornate };
+  });
+}, [matches, groupStandings]);
 
   const scorerStats = useMemo(() => {
     const stats: Record<string, any> = {};
@@ -178,6 +204,99 @@ const isGironi = groupStandings.length > 0;
       </div>
     </div>
   );
+  const renderMatchCard = (match: any) => {
+  const teamA = teams.find(t => t.id === match.teamAId);
+  const teamB = teams.find(t => t.id === match.teamBId);
+  const isExpanded = expandedMatchId === match.id;
+  const matchEvents = events.filter(e => e.matchId === match.id);
+  const matchGoals = matchEvents.filter(e => e.type === 'gol');
+  const matchAssists = matchEvents.filter(e => e.type === 'assist');
+
+  const getPlayerInfo = (playerId: string) => {
+    const player = players.find(p => p.id === playerId);
+    return { name: player?.name ?? '?', teamId: player?.teamId };
+  };
+
+  const goalsA = matchGoals.filter(e => getPlayerInfo(e.playerId).teamId === match.teamAId);
+  const goalsB = matchGoals.filter(e => getPlayerInfo(e.playerId).teamId === match.teamBId);
+  const assistsA = matchAssists.filter(e => getPlayerInfo(e.playerId).teamId === match.teamAId);
+  const assistsB = matchAssists.filter(e => getPlayerInfo(e.playerId).teamId === match.teamBId);
+
+  const hasEvents = matchEvents.length > 0;
+
+  return (
+    <div key={match.id} className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+      <div
+        className={`px-2 py-2 flex items-center gap-1 ${match.status === 'finished' && hasEvents ? 'cursor-pointer active:bg-slate-50' : ''}`}
+        onClick={() => match.status === 'finished' && hasEvents && setExpandedMatchId(isExpanded ? null : match.id)}
+      >
+        <div className="flex-1 flex items-center justify-end gap-1 min-w-0">
+          <span className="font-bold text-slate-700 text-[11px] truncate">{teamA?.name ?? '---'}</span>
+          {teamA?.logoUrl
+            ? <img src={teamA.logoUrl} alt="" className="w-5 h-5 rounded object-cover flex-shrink-0 border border-slate-100" />
+            : <div className="w-5 h-5 rounded bg-slate-100 flex items-center justify-center text-[9px] font-black text-slate-400 flex-shrink-0">{teamA?.name?.charAt(0) ?? '?'}</div>
+          }
+        </div>
+        <div className="flex items-center gap-0.5 px-1 flex-shrink-0">
+          <div className="w-7 h-7 flex items-center justify-center text-sm font-black bg-slate-50 rounded-lg border border-slate-100">{match.status === 'finished' ? match.scoreA : '-'}</div>
+          <div className="text-[7px] font-black text-slate-300 px-0.5">-</div>
+          <div className="w-7 h-7 flex items-center justify-center text-sm font-black bg-slate-50 rounded-lg border border-slate-100">{match.status === 'finished' ? match.scoreB : '-'}</div>
+        </div>
+        <div className="flex-1 flex items-center gap-1 min-w-0">
+          {teamB?.logoUrl
+            ? <img src={teamB.logoUrl} alt="" className="w-5 h-5 rounded object-cover flex-shrink-0 border border-slate-100" />
+            : <div className="w-5 h-5 rounded bg-slate-100 flex items-center justify-center text-[9px] font-black text-slate-400 flex-shrink-0">{teamB?.name?.charAt(0) ?? '?'}</div>
+          }
+          <span className="font-bold text-slate-700 text-[11px] truncate">{teamB?.name ?? '---'}</span>
+        </div>
+        {match.status === 'finished' && hasEvents && (
+          <span className="text-[9px] text-slate-400 flex-shrink-0 ml-1">{isExpanded ? '▲' : '▼'}</span>
+        )}
+      </div>
+
+      {isExpanded && (
+        <div className="border-t border-slate-100 px-3 py-3 grid grid-cols-2 gap-3 bg-slate-50">
+          <div className="space-y-1">
+            <div className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-2">{teamA?.name}</div>
+            {goalsA.map(e => (
+              <div key={e.id} className="flex items-center gap-1.5 text-[11px]">
+                <span className="w-4 h-4 bg-emerald-100 text-emerald-600 rounded flex items-center justify-center text-[8px] font-black flex-shrink-0">G</span>
+                <span className="text-slate-700 font-medium truncate">{getPlayerInfo(e.playerId).name}</span>
+              </div>
+            ))}
+            {assistsA.map(e => (
+              <div key={e.id} className="flex items-center gap-1.5 text-[11px]">
+                <span className="w-4 h-4 bg-blue-100 text-blue-600 rounded flex items-center justify-center text-[8px] font-black flex-shrink-0">A</span>
+                <span className="text-slate-700 font-medium truncate">{getPlayerInfo(e.playerId).name}</span>
+              </div>
+            ))}
+            {goalsA.length === 0 && assistsA.length === 0 && (
+              <div className="text-[10px] text-slate-300 italic">Nessun evento</div>
+            )}
+          </div>
+          <div className="space-y-1">
+            <div className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-2">{teamB?.name}</div>
+            {goalsB.map(e => (
+              <div key={e.id} className="flex items-center gap-1.5 text-[11px]">
+                <span className="w-4 h-4 bg-emerald-100 text-emerald-600 rounded flex items-center justify-center text-[8px] font-black flex-shrink-0">G</span>
+                <span className="text-slate-700 font-medium truncate">{getPlayerInfo(e.playerId).name}</span>
+              </div>
+            ))}
+            {assistsB.map(e => (
+              <div key={e.id} className="flex items-center gap-1.5 text-[11px]">
+                <span className="w-4 h-4 bg-blue-100 text-blue-600 rounded flex items-center justify-center text-[8px] font-black flex-shrink-0">A</span>
+                <span className="text-slate-700 font-medium truncate">{getPlayerInfo(e.playerId).name}</span>
+              </div>
+            ))}
+            {goalsB.length === 0 && assistsB.length === 0 && (
+              <div className="text-[10px] text-slate-300 italic">Nessun evento</div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
 
   const selectedRoseTeam = teams.find(t => t.id === selectedRoseTeamId);
   const roseTeamPlayers = players.filter(p => p.teamId === selectedRoseTeamId).sort((a, b) => a.name.localeCompare(b.name, 'it'));
@@ -223,134 +342,88 @@ const isGironi = groupStandings.length > 0;
         <AnimatePresence mode="wait">
 
           {activeTab === 'matches' && (
-            <motion.div key="matches" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-4">
-              <select
-                value={selectedPublicRound ?? ''}
-                onChange={e => setSelectedPublicRound(e.target.value ? parseInt(e.target.value) : null)}
-                className="w-full bg-white border border-slate-200 rounded-2xl px-4 py-3 font-black text-slate-700 text-sm outline-none shadow-sm"
-              >
-                <option value="">Seleziona giornata...</option>
-                {Array.from(new Set(matches.map(m => m.round))).sort((a: number, b: number) => a - b).map(rn => {
-                  const isRet = matches.filter(m => m.round === rn)[0]?.isReturnMatch;
-                  return <option key={rn} value={rn}>Giornata {rn}{isRet ? ' (Ritorno)' : ''}</option>;
-                })}
-              </select>
-
-              {!selectedPublicRound && (
-                <div className="text-center py-12 text-slate-400 italic text-sm">Seleziona una giornata dal menu.</div>
-              )}
-
-              {selectedPublicRound && (
-                <div className="space-y-3">
+  <motion.div key="matches" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-4">
+    {isGironi ? (
+      <div className="space-y-8">
+        {groupSchedules.map(gs => (
+          <div key={gs.groupName} className="space-y-4">
+            <h2 className="text-xs font-black uppercase tracking-widest text-indigo-600 px-1">Girone {gs.groupName}</h2>
+            {gs.giornate.map((giornata, gIdx) => {
+              const giornataMatches = gs.andataMatches.filter((m: any) =>
+                giornata.some((g: any) =>
+                  (g.homeId === m.teamAId && g.awayId === m.teamBId) ||
+                  (g.homeId === m.teamBId && g.awayId === m.teamAId)
+                )
+              );
+              if (giornataMatches.length === 0) return null;
+              return (
+                <div key={`andata-${gIdx}`} className="space-y-2">
                   <div className="flex items-center gap-3 px-1">
-                    <h2 className="text-xs font-black uppercase tracking-widest text-indigo-600">Giornata {selectedPublicRound}</h2>
+                    <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400">Giornata {gIdx + 1}</h3>
                     <div className="h-px bg-slate-200 flex-1" />
-                    {isReturnRound && <span className="text-[9px] font-black uppercase text-slate-400 bg-slate-100 px-2 py-1 rounded-md">Ritorno</span>}
                   </div>
                   <div className="grid gap-2">
-                    {roundMatches.map(match => {
-  const teamA = teams.find(t => t.id === match.teamAId);
-  const teamB = teams.find(t => t.id === match.teamBId);
-  const isExpanded = expandedMatchId === match.id;
-  const matchEvents = events.filter(e => e.matchId === match.id);
-  const matchGoals = matchEvents.filter(e => e.type === 'gol');
-  const matchAssists = matchEvents.filter(e => e.type === 'assist');
-
-  const getPlayerInfo = (playerId: string) => {
-    const player = players.find(p => p.id === playerId);
-    const team = teams.find(t => t.id === player?.teamId);
-    return { name: player?.name ?? '?', teamId: player?.teamId };
-  };
-
-  const goalsA = matchGoals.filter(e => getPlayerInfo(e.playerId).teamId === match.teamAId);
-  const goalsB = matchGoals.filter(e => getPlayerInfo(e.playerId).teamId === match.teamBId);
-  const assistsA = matchAssists.filter(e => getPlayerInfo(e.playerId).teamId === match.teamAId);
-  const assistsB = matchAssists.filter(e => getPlayerInfo(e.playerId).teamId === match.teamBId);
-
-  const hasEvents = matchEvents.length > 0;
-
-  return (
-    <div key={match.id} className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-      {/* Card partita (identica a prima) */}
-      <div
-        className={`px-2 py-2 flex items-center gap-1 ${match.status === 'finished' && hasEvents ? 'cursor-pointer active:bg-slate-50' : ''}`}
-        onClick={() => match.status === 'finished' && hasEvents && setExpandedMatchId(isExpanded ? null : match.id)}
-      >
-        <div className="flex-1 flex items-center justify-end gap-1 min-w-0">
-          <span className="font-bold text-slate-700 text-[11px] truncate">{teamA?.name ?? '---'}</span>
-          {teamA?.logoUrl
-            ? <img src={teamA.logoUrl} alt="" className="w-5 h-5 rounded object-cover flex-shrink-0 border border-slate-100" />
-            : <div className="w-5 h-5 rounded bg-slate-100 flex items-center justify-center text-[9px] font-black text-slate-400 flex-shrink-0">{teamA?.name?.charAt(0) ?? '?'}</div>
-          }
-        </div>
-        <div className="flex items-center gap-0.5 px-1 flex-shrink-0">
-          <div className="w-7 h-7 flex items-center justify-center text-sm font-black bg-slate-50 rounded-lg border border-slate-100">{match.status === 'finished' ? match.scoreA : '-'}</div>
-          <div className="text-[7px] font-black text-slate-300 px-0.5">-</div>
-          <div className="w-7 h-7 flex items-center justify-center text-sm font-black bg-slate-50 rounded-lg border border-slate-100">{match.status === 'finished' ? match.scoreB : '-'}</div>
-        </div>
-        <div className="flex-1 flex items-center gap-1 min-w-0">
-          {teamB?.logoUrl
-            ? <img src={teamB.logoUrl} alt="" className="w-5 h-5 rounded object-cover flex-shrink-0 border border-slate-100" />
-            : <div className="w-5 h-5 rounded bg-slate-100 flex items-center justify-center text-[9px] font-black text-slate-400 flex-shrink-0">{teamB?.name?.charAt(0) ?? '?'}</div>
-          }
-          <span className="font-bold text-slate-700 text-[11px] truncate">{teamB?.name ?? '---'}</span>
-        </div>
-        {match.status === 'finished' && hasEvents && (
-          <span className="text-[9px] text-slate-400 flex-shrink-0 ml-1">{isExpanded ? '▲' : '▼'}</span>
-        )}
-      </div>
-
-      {/* Pannello espandibile con referto */}
-      {isExpanded && (
-        <div className="border-t border-slate-100 px-3 py-3 grid grid-cols-2 gap-3 bg-slate-50">
-          {/* Colonna squadra A */}
-          <div className="space-y-1">
-            <div className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-2">{teamA?.name}</div>
-            {goalsA.map(e => (
-              <div key={e.id} className="flex items-center gap-1.5 text-[11px]">
-                <span className="w-4 h-4 bg-emerald-100 text-emerald-600 rounded flex items-center justify-center text-[8px] font-black flex-shrink-0">G</span>
-                <span className="text-slate-700 font-medium truncate">{getPlayerInfo(e.playerId).name}</span>
-              </div>
-            ))}
-            {assistsA.map(e => (
-              <div key={e.id} className="flex items-center gap-1.5 text-[11px]">
-                <span className="w-4 h-4 bg-blue-100 text-blue-600 rounded flex items-center justify-center text-[8px] font-black flex-shrink-0">A</span>
-                <span className="text-slate-700 font-medium truncate">{getPlayerInfo(e.playerId).name}</span>
-              </div>
-            ))}
-            {goalsA.length === 0 && assistsA.length === 0 && (
-              <div className="text-[10px] text-slate-300 italic">Nessun evento</div>
-            )}
-          </div>
-          {/* Colonna squadra B */}
-          <div className="space-y-1">
-            <div className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-2">{teamB?.name}</div>
-            {goalsB.map(e => (
-              <div key={e.id} className="flex items-center gap-1.5 text-[11px]">
-                <span className="w-4 h-4 bg-emerald-100 text-emerald-600 rounded flex items-center justify-center text-[8px] font-black flex-shrink-0">G</span>
-                <span className="text-slate-700 font-medium truncate">{getPlayerInfo(e.playerId).name}</span>
-              </div>
-            ))}
-            {assistsB.map(e => (
-              <div key={e.id} className="flex items-center gap-1.5 text-[11px]">
-                <span className="w-4 h-4 bg-blue-100 text-blue-600 rounded flex items-center justify-center text-[8px] font-black flex-shrink-0">A</span>
-                <span className="text-slate-700 font-medium truncate">{getPlayerInfo(e.playerId).name}</span>
-              </div>
-            ))}
-            {goalsB.length === 0 && assistsB.length === 0 && (
-              <div className="text-[10px] text-slate-300 italic">Nessun evento</div>
-            )}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-})}
+                    {giornataMatches.map((match: any) => renderMatchCard(match))}
                   </div>
                 </div>
-              )}
-            </motion.div>
-          )}
+              );
+            })}
+            {gs.ritornoMatches.length > 0 && gs.giornate.map((giornata, gIdx) => {
+              const giornataMatches = gs.ritornoMatches.filter((m: any) =>
+                giornata.some((g: any) =>
+                  (g.homeId === m.teamAId && g.awayId === m.teamBId) ||
+                  (g.homeId === m.teamBId && g.awayId === m.teamAId)
+                )
+              );
+              if (giornataMatches.length === 0) return null;
+              return (
+                <div key={`ritorno-${gIdx}`} className="space-y-2">
+                  <div className="flex items-center gap-3 px-1">
+                    <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400">Giornata {gs.giornate.length + gIdx + 1}</h3>
+                    <div className="h-px bg-slate-200 flex-1" />
+                    <span className="text-[9px] font-black uppercase text-slate-400 bg-slate-100 px-2 py-1 rounded-md">Ritorno</span>
+                  </div>
+                  <div className="grid gap-2">
+                    {giornataMatches.map((match: any) => renderMatchCard(match))}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ))}
+      </div>
+    ) : (
+      <>
+        <select
+          value={selectedPublicRound ?? ''}
+          onChange={e => setSelectedPublicRound(e.target.value ? parseInt(e.target.value) : null)}
+          className="w-full bg-white border border-slate-200 rounded-2xl px-4 py-3 font-black text-slate-700 text-sm outline-none shadow-sm"
+        >
+          <option value="">Seleziona giornata...</option>
+          {Array.from(new Set(matches.map(m => m.round))).sort((a: number, b: number) => a - b).map(rn => {
+            const isRet = matches.filter(m => m.round === rn)[0]?.isReturnMatch;
+            return <option key={rn} value={rn}>Giornata {rn}{isRet ? ' (Ritorno)' : ''}</option>;
+          })}
+        </select>
+        {!selectedPublicRound && (
+          <div className="text-center py-12 text-slate-400 italic text-sm">Seleziona una giornata dal menu.</div>
+        )}
+        {selectedPublicRound && (
+          <div className="space-y-3">
+            <div className="flex items-center gap-3 px-1">
+              <h2 className="text-xs font-black uppercase tracking-widest text-indigo-600">Giornata {selectedPublicRound}</h2>
+              <div className="h-px bg-slate-200 flex-1" />
+              {isReturnRound && <span className="text-[9px] font-black uppercase text-slate-400 bg-slate-100 px-2 py-1 rounded-md">Ritorno</span>}
+            </div>
+            <div className="grid gap-2">
+              {roundMatches.map(match => renderMatchCard(match))}
+            </div>
+          </div>
+        )}
+      </>
+    )}
+  </motion.div>
+)}
 
           {activeTab === 'standings' && tournament.type === 'league' && (
   isGironi ? (
