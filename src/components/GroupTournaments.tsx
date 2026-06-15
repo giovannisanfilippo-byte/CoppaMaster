@@ -150,19 +150,48 @@ export const GroupTournaments = ({ onBack, onTournamentCreated, existingTourname
       for (const event of matchEvents) {
         await supabase.from('match_events').delete().eq('id', event.id);
       }
-      await supabase.from('matches').update({ score_a: 0, score_b: 0, status: 'scheduled' }).eq('id', match.id);
-      const newGroups = groups.map(g => ({
-        ...g,
-        matches: g.matches.map((m: any) => m.id === match.id ? { ...m, scoreA: 0, scoreB: 0, played: false } : m)
-      }));
-      setGroups(newGroups);
+
+      const isPlayoffMatch = typeof match.round !== 'undefined';
+
+      await supabase.from('matches').update({
+        score_a: 0, score_b: 0, status: 'scheduled',
+        overtime_type: null, winner_id: null, extra_time_a: 0, extra_time_b: 0
+      }).eq('id', match.id);
+
+      if (isPlayoffMatch) {
+        const matchIdx = playoffMatches.findIndex(m => m.id === match.id);
+        const updatedMatches = [...playoffMatches];
+        updatedMatches[matchIdx] = { ...updatedMatches[matchIdx], scoreA: 0, scoreB: 0, played: false, overtimeType: null, winnerId: null, extraTimeA: 0, extraTimeB: 0 };
+
+        if (match.nextMatchId) {
+          const isTeamB = match.positionInRound % 2 !== 0;
+          const nextMatchIndex = updatedMatches.findIndex(m => m.id === match.nextMatchId);
+          if (nextMatchIndex !== -1) {
+            const field = isTeamB ? 'teamB' : 'teamA';
+            updatedMatches[nextMatchIndex] = { ...updatedMatches[nextMatchIndex], [field]: null };
+            await supabase.from('matches').update({ [isTeamB ? 'team_b_id' : 'team_a_id']: null }).eq('id', match.nextMatchId);
+          }
+        }
+        setPlayoffMatches(updatedMatches);
+      } else {
+        const newGroups = groups.map(g => ({
+          ...g,
+          matches: g.matches.map((m: any) => m.id === match.id ? { ...m, scoreA: 0, scoreB: 0, played: false } : m)
+        }));
+        setGroups(newGroups);
+      }
+
+      setOvertimeType('');
+      setOvertimeWinnerId('');
+      setExtraTimeA(0);
+      setExtraTimeB(0);
       setMatchEvents([]);
       setAllEvents(allEvents.filter(e => !matchEvents.find(me => me.id === e.id)));
       setSelectedMatch(null);
     } catch (error: any) {
       alert('Errore reset partita: ' + error.message);
     }
-  };
+};
 
   const addEvent = async (playerId: string, type: 'gol' | 'assist') => {
     if (!selectedMatch || !user) return;
