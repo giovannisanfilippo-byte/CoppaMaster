@@ -17,6 +17,10 @@ export const GroupTournaments = ({ onBack, onTournamentCreated, existingTourname
   const [activeTab, setActiveTab] = useState<'gironi' | 'marcatori' | 'assist' | 'finale'>('gironi');
   const [playoffMatches, setPlayoffMatches] = useState<any[]>([]);
   const [playoffGenerated, setPlayoffGenerated] = useState(false);
+  const [overtimeType, setOvertimeType] = useState<string>('');
+  const [overtimeWinnerId, setOvertimeWinnerId] = useState<string>('');
+  const [extraTimeA, setExtraTimeA] = useState<number>(0);
+  const [extraTimeB, setExtraTimeB] = useState<number>(0);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => setUser(session?.user ?? null));
@@ -73,7 +77,8 @@ export const GroupTournaments = ({ onBack, onTournamentCreated, existingTourname
           .map(m => ({
             id: m.id, teamA: teamsMap[m.team_a_id] || null, teamB: teamsMap[m.team_b_id] || null,
             scoreA: m.score_a, scoreB: m.score_b, played: m.status === 'finished',
-            round: m.round, positionInRound: m.position_in_round, nextMatchId: m.next_match_id
+            round: m.round, positionInRound: m.position_in_round, nextMatchId: m.next_match_id,
+            overtimeType: m.overtime_type, winnerId: m.winner_id, extraTimeA: m.extra_time_a || 0, extraTimeB: m.extra_time_b || 0
           }));
         setPlayoffMatches(loadedPlayoffMatches);
         setPlayoffGenerated(true);
@@ -132,6 +137,10 @@ export const GroupTournaments = ({ onBack, onTournamentCreated, existingTourname
 
   const openMatchReport = async (match: any) => {
     setSelectedMatch(match);
+    setOvertimeType(match.overtimeType || '');
+    setOvertimeWinnerId(match.winnerId || '');
+    setExtraTimeA(match.extraTimeA || 0);
+    setExtraTimeB(match.extraTimeB || 0);
     const { data } = await supabase.from('match_events').select('*').eq('match_id', match.id);
     if (data) setMatchEvents(data.map((e: any) => ({ id: e.id, matchId: e.match_id, playerId: e.player_id, type: e.event_type })));
   };
@@ -291,33 +300,43 @@ export const GroupTournaments = ({ onBack, onTournamentCreated, existingTourname
     }
   };
 
-  const updatePlayoffScore = async (matchIdx: number, scoreA: number, scoreB: number) => {
+  const updatePlayoffScore = async (matchIdx: number, scoreA: number, scoreB: number, overtimeType?: string, overtimeWinnerId?: string, extraTimeA?: number, extraTimeB?: number) => {
     const match = playoffMatches[matchIdx];
-    await supabase.from('matches').update({ score_a: scoreA, score_b: scoreB, status: 'finished' }).eq('id', match.id);
+    const totalA = scoreA + (overtimeType === 'extra_time' ? (extraTimeA || 0) : 0);
+    const totalB = scoreB + (overtimeType === 'extra_time' ? (extraTimeB || 0) : 0);
+    const autoWinnerId = totalA > totalB ? match.teamA?.id : totalB > totalA ? match.teamB?.id : null;
+    const finalWinnerId = autoWinnerId || overtimeWinnerId || null;
+
+    await supabase.from('matches').update({
+      score_a: totalA, score_b: totalB, status: 'finished',
+      ...(overtimeType && { overtime_type: overtimeType }),
+      ...(finalWinnerId && { winner_id: finalWinnerId }),
+      extra_time_a: overtimeType === 'extra_time' ? (extraTimeA || 0) : 0,
+      extra_time_b: overtimeType === 'extra_time' ? (extraTimeB || 0) : 0
+    }).eq('id', match.id);
+
     const updatedMatches = [...playoffMatches];
-    updatedMatches[matchIdx] = { ...match, scoreA, scoreB, played: true };
-    if (match.nextMatchId) {
-      const winnerId = scoreA > scoreB ? match.teamA?.id : scoreB > scoreA ? match.teamB?.id : null;
-      const winner = scoreA > scoreB ? match.teamA : scoreB > scoreA ? match.teamB : null;
-      if (winnerId && winner) {
-        const nextMatchIndex = updatedMatches.findIndex(m => m.id === match.nextMatchId);
-        if (nextMatchIndex !== -1) {
-          const isTeamB = match.positionInRound % 2 !== 0;
-          const updatedNextMatch = {
-            ...updatedMatches[nextMatchIndex],
-            teamA: isTeamB ? updatedMatches[nextMatchIndex].teamA : winner,
-            teamB: isTeamB ? winner : updatedMatches[nextMatchIndex].teamB,
-          };
-          updatedMatches[nextMatchIndex] = updatedNextMatch;
-          await supabase.from('matches').update({
-            team_a_id: isTeamB ? updatedMatches[nextMatchIndex].teamA?.id : winnerId,
-            team_b_id: isTeamB ? winnerId : updatedMatches[nextMatchIndex].teamB?.id
-          }).eq('id', match.nextMatchId);
-        }
+    updatedMatches[matchIdx] = { ...match, scoreA: totalA, scoreB: totalB, played: true, overtimeType, winnerId: finalWinnerId, extraTimeA: extraTimeA || 0, extraTimeB: extraTimeB || 0 };
+
+    if (match.nextMatchId && finalWinnerId) {
+      const winner = finalWinnerId === match.teamA?.id ? match.teamA : match.teamB;
+      const nextMatchIndex = updatedMatches.findIndex(m => m.id === match.nextMatchId);
+      if (nextMatchIndex !== -1) {
+        const isTeamB = match.positionInRound % 2 !== 0;
+        const updatedNextMatch = {
+          ...updatedMatches[nextMatchIndex],
+          teamA: isTeamB ? updatedMatches[nextMatchIndex].teamA : winner,
+          teamB: isTeamB ? winner : updatedMatches[nextMatchIndex].teamB,
+        };
+        updatedMatches[nextMatchIndex] = updatedNextMatch;
+        await supabase.from('matches').update({
+          team_a_id: isTeamB ? updatedMatches[nextMatchIndex].teamA?.id : finalWinnerId,
+          team_b_id: isTeamB ? finalWinnerId : updatedMatches[nextMatchIndex].teamB?.id
+        }).eq('id', match.nextMatchId);
       }
     }
     setPlayoffMatches(updatedMatches);
-  };
+};
 
   const getScorerStats = () => {
     const stats: Record<string, any> = {};
@@ -687,6 +706,82 @@ export const GroupTournaments = ({ onBack, onTournamentCreated, existingTourname
                 <div className="flex-1 font-black text-lg">{selectedMatch.teamB?.name}</div>
               </div>
             </div>
+            {typeof selectedMatch.round !== 'undefined' && selectedMatch.scoreA === selectedMatch.scoreB && selectedMatch.played && (
+  <div className="m-6 mb-0 p-4 bg-indigo-50 border border-indigo-100 rounded-2xl space-y-3">
+    <p className="text-indigo-700 text-xs font-black uppercase tracking-widest">Pareggio — Come si decide?</p>
+    <div className="flex gap-2">
+      <button type="button" onClick={() => { setOvertimeType('extra_time'); setExtraTimeA(0); setExtraTimeB(0); setOvertimeWinnerId(''); }}
+        className={`flex-1 py-2 rounded-xl text-xs font-black border transition-all ${overtimeType === 'extra_time' ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-indigo-600 border-indigo-200'}`}>
+        ⏱ Supplementari</button>
+      <button type="button" onClick={() => { setOvertimeType('penalties'); setExtraTimeA(0); setExtraTimeB(0); }}
+        className={`flex-1 py-2 rounded-xl text-xs font-black border transition-all ${overtimeType === 'penalties' ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-indigo-600 border-indigo-200'}`}>
+        🥅 Rigori</button>
+    </div>
+
+    {overtimeType === 'extra_time' && (
+      <div className="space-y-3">
+        <p className="text-indigo-600 text-[10px] font-black uppercase tracking-widest">Gol supplementari</p>
+        <div className="flex gap-4">
+          <div className="flex-1 text-center space-y-1">
+            <p className="text-[10px] text-slate-500 font-bold truncate">{selectedMatch.teamA?.name}</p>
+            <div className="flex items-center justify-center gap-2">
+              <button type="button" onClick={() => setExtraTimeA(Math.max(0, extraTimeA - 1))} className="w-7 h-7 rounded-lg bg-white border border-slate-200 font-black text-slate-600">-</button>
+              <span className="w-8 text-center font-black text-lg text-slate-900">{extraTimeA}</span>
+              <button type="button" onClick={() => setExtraTimeA(extraTimeA + 1)} className="w-7 h-7 rounded-lg bg-white border border-slate-200 font-black text-slate-600">+</button>
+            </div>
+          </div>
+          <div className="flex-1 text-center space-y-1">
+            <p className="text-[10px] text-slate-500 font-bold truncate">{selectedMatch.teamB?.name}</p>
+            <div className="flex items-center justify-center gap-2">
+              <button type="button" onClick={() => setExtraTimeB(Math.max(0, extraTimeB - 1))} className="w-7 h-7 rounded-lg bg-white border border-slate-200 font-black text-slate-600">-</button>
+              <span className="w-8 text-center font-black text-lg text-slate-900">{extraTimeB}</span>
+              <button type="button" onClick={() => setExtraTimeB(extraTimeB + 1)} className="w-7 h-7 rounded-lg bg-white border border-slate-200 font-black text-slate-600">+</button>
+            </div>
+          </div>
+        </div>
+        {extraTimeA === extraTimeB && (
+          <div className="space-y-2">
+            <p className="text-amber-600 text-[10px] font-bold">⚠️ Parità anche ai supplementari — chi passa?</p>
+            <div className="flex gap-2">
+              <button type="button" onClick={() => setOvertimeWinnerId(selectedMatch.teamA?.id)}
+                className={`flex-1 py-2 rounded-xl text-xs font-black border transition-all ${overtimeWinnerId === selectedMatch.teamA?.id ? 'bg-emerald-500 text-white border-emerald-500' : 'bg-white text-slate-600 border-slate-200'}`}>
+                {selectedMatch.teamA?.name}</button>
+              <button type="button" onClick={() => setOvertimeWinnerId(selectedMatch.teamB?.id)}
+                className={`flex-1 py-2 rounded-xl text-xs font-black border transition-all ${overtimeWinnerId === selectedMatch.teamB?.id ? 'bg-emerald-500 text-white border-emerald-500' : 'bg-white text-slate-600 border-slate-200'}`}>
+                {selectedMatch.teamB?.name}</button>
+            </div>
+          </div>
+        )}
+      </div>
+    )}
+
+    {overtimeType === 'penalties' && (
+      <div>
+        <p className="text-indigo-600 text-[10px] font-black uppercase tracking-widest mb-2">Chi passa il turno?</p>
+        <div className="flex gap-2">
+          <button type="button" onClick={() => setOvertimeWinnerId(selectedMatch.teamA?.id)}
+            className={`flex-1 py-2 rounded-xl text-xs font-black border transition-all ${overtimeWinnerId === selectedMatch.teamA?.id ? 'bg-emerald-500 text-white border-emerald-500' : 'bg-white text-slate-600 border-slate-200'}`}>
+            {selectedMatch.teamA?.name}</button>
+          <button type="button" onClick={() => setOvertimeWinnerId(selectedMatch.teamB?.id)}
+            className={`flex-1 py-2 rounded-xl text-xs font-black border transition-all ${overtimeWinnerId === selectedMatch.teamB?.id ? 'bg-emerald-500 text-white border-emerald-500' : 'bg-white text-slate-600 border-slate-200'}`}>
+            {selectedMatch.teamB?.name}</button>
+        </div>
+      </div>
+    )}
+
+    <button
+      type="button"
+      onClick={() => {
+        const matchIdx = playoffMatches.findIndex(m => m.id === selectedMatch.id);
+        updatePlayoffScore(matchIdx, selectedMatch.scoreA, selectedMatch.scoreB, overtimeType, overtimeWinnerId, extraTimeA, extraTimeB);
+      }}
+      disabled={!overtimeType || (overtimeType === 'penalties' && !overtimeWinnerId) || (overtimeType === 'extra_time' && extraTimeA === extraTimeB && !overtimeWinnerId)}
+      className="w-full bg-indigo-600 text-white py-2.5 rounded-xl font-black text-xs disabled:opacity-40 disabled:cursor-not-allowed"
+    >
+      Salva Esito
+    </button>
+  </div>
+)}
             <div className="flex-1 overflow-y-auto p-6">
               <div className="grid md:grid-cols-2 gap-6">
                 {[selectedMatch.teamA, selectedMatch.teamB].map((team: any) => (
