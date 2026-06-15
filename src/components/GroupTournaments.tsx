@@ -706,7 +706,7 @@ export const GroupTournaments = ({ onBack, onTournamentCreated, existingTourname
                 <div className="flex-1 font-black text-lg">{selectedMatch.teamB?.name}</div>
               </div>
             </div>
-            {typeof selectedMatch.round !== 'undefined' && selectedMatch.scoreA === selectedMatch.scoreB && selectedMatch.played && (
+            {typeof selectedMatch.round !== 'undefined' && selectedMatch.teamA && selectedMatch.teamB && selectedMatch.scoreA === selectedMatch.scoreB && (
   <div className="m-6 mb-0 p-4 bg-indigo-50 border border-indigo-100 rounded-2xl space-y-3">
     <p className="text-indigo-700 text-xs font-black uppercase tracking-widest">Pareggio — Come si decide?</p>
     <div className="flex gap-2">
