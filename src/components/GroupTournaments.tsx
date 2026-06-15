@@ -485,10 +485,9 @@ export const GroupTournaments = ({ onBack, onTournamentCreated, existingTourname
                 <div className="grid md:grid-cols-2 gap-6 p-6">
                   <div>
                     <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3">Classifica</h3>
-                    <div className="overflow-x-auto -mx-2">
-                    <table className="w-full text-sm min-w-[420px] px-2">
-                      <thead><tr className="text-[10px] font-black uppercase text-slate-400">
-                        <th className="text-left py-2">Squadra</th>
+                    <table className="w-full text-[11px] table-fixed">
+                      <thead><tr className="text-[8px] font-black uppercase text-slate-400">
+                        <th className="text-left py-2 w-[34%]">Squadra</th>
                         <th className="text-center py-2">P</th><th className="text-center py-2">V</th>
                         <th className="text-center py-2">N</th><th className="text-center py-2">S</th>
                         <th className="text-center py-2">GF</th><th className="text-center py-2">GS</th>
@@ -497,10 +496,12 @@ export const GroupTournaments = ({ onBack, onTournamentCreated, existingTourname
                       <tbody className="divide-y divide-slate-100">
                         {getGroupStandings(group).map((s: any, i: number) => (
                           <tr key={s.name} className={`hover:bg-slate-50 ${i < 2 ? 'font-bold' : ''}`}>
-                            <td className="py-2 text-slate-700 flex items-center gap-2">
-                              {i < 2 && <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block"></span>}
-                              {i === 2 && groups.length >= 3 && <span className="w-2 h-2 rounded-full bg-amber-400 inline-block"></span>}
-                              {i + 1}. {s.name}
+                            <td className="py-2 text-slate-700">
+                              <div className="flex items-center gap-1 truncate">
+                                {i < 2 && <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block flex-shrink-0"></span>}
+                                {i === 2 && groups.length >= 3 && <span className="w-2 h-2 rounded-full bg-amber-400 inline-block flex-shrink-0"></span>}
+                                <span className="truncate">{i + 1}. {s.name}</span>
+                              </div>
                             </td>
                             <td className="text-center py-2">{s.p}</td>
                             <td className="text-center py-2 text-emerald-600">{s.w}</td>
