@@ -138,6 +138,7 @@ export function PublicTournamentView() {
 }, [matches, teams]);
 
 const isGironi = groupStandings.length > 0;
+  const hasPlayoff = matches.some(m => m.matchType === 'playoff');
   const groupSchedules = useMemo(() => {
   return groupStandings.map(g => {
     const groupName = g.groupName;
@@ -305,7 +306,7 @@ const isGironi = groupStandings.length > 0;
 
   const tabs = [
     { id: 'matches', icon: Calendar, label: 'Partite', show: tournament.type === 'league' },
-    { id: 'bracket', icon: LayoutDashboard, label: 'Tabellone', show: tournament.type === 'knockout' },
+    { id: 'bracket', icon: LayoutDashboard, label: 'Tabellone', show: tournament.type === 'knockout' || hasPlayoff },
     { id: 'standings', icon: Users, label: 'Classifica', show: tournament.type === 'league' },
     { id: 'scorers', icon: Award, label: 'Marcatori', show: true },
     { id: 'assists', icon: Award, label: 'Assist', show: true },
@@ -448,7 +449,7 @@ const isGironi = groupStandings.length > 0;
   )
 )}
 
-          {activeTab === 'bracket' && tournament.type === 'knockout' && (
+          {activeTab === 'bracket' && (tournament.type === 'knockout' || hasPlayoff) && (
             <motion.div key="bracket" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="overflow-x-auto pb-4 -mx-3 px-3">
               <div className="flex gap-6 min-w-max">
                 {[16, 8, 4, 2].filter(r => matches.some(m => m.round === r)).sort((a, b) => b - a).map(roundSize => (
@@ -457,7 +458,7 @@ const isGironi = groupStandings.length > 0;
                       {roundSize === 2 ? 'Finale' : roundSize === 4 ? 'Semifinali' : roundSize === 8 ? 'Quarti' : 'Ottavi'}
                     </h3>
                     <div className="flex flex-col justify-around flex-1 gap-6">
-                      {matches.filter(m => m.round === roundSize).sort((a, b) => (a.positionInRound || 0) - (b.positionInRound || 0)).map(match => {
+                      {matches.filter(m => m.round === roundSize && (tournament.type === 'knockout' || m.matchType === 'playoff')).sort((a, b) => (a.positionInRound || 0) - (b.positionInRound || 0)).map(match => {
                         const teamA = teams.find(t => t.id === match.teamAId);
                         const teamB = teams.find(t => t.id === match.teamBId);
                         return (
