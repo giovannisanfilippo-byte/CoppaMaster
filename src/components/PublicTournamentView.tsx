@@ -99,6 +99,45 @@ export function PublicTournamentView() {
     return -h.drA;
   });
 }, [matches, teams, tournament]);
+  const groupStandings = useMemo(() => {
+  const groupTypes = [...new Set(matches.filter(m => m.matchType?.startsWith('girone_')).map(m => m.matchType))].sort();
+  return groupTypes.map(gt => {
+    const groupName = gt.replace('girone_', '');
+    const gm = matches.filter(m => m.matchType === gt);
+    const teamIds = [...new Set([...gm.map(m => m.teamAId), ...gm.map(m => m.teamBId)].filter(Boolean))];
+    const stats: Record<string, any> = {};
+    teamIds.forEach(id => {
+      const t = teams.find(tm => tm.id === id);
+      stats[id!] = { id, name: t?.name || '', logoUrl: t?.logoUrl, p: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, pts: 0 };
+    });
+    const fm = gm.filter(m => m.status === 'finished');
+    fm.forEach(m => {
+      if (!m.teamAId || !m.teamBId) return;
+      const sA = stats[m.teamAId]; const sB = stats[m.teamBId]; if (!sA || !sB) return;
+      sA.p++; sB.p++; sA.gf += m.scoreA; sA.ga += m.scoreB; sB.gf += m.scoreB; sB.ga += m.scoreA;
+      if (m.scoreA > m.scoreB) { sA.w++; sB.l++; sA.pts += 3; } else if (m.scoreB > m.scoreA) { sB.w++; sA.l++; sB.pts += 3; } else { sA.d++; sB.d++; sA.pts += 1; sB.pts += 1; }
+    });
+    const h2h = (a: any, b: any) => {
+      let pA = 0, pB = 0, drA = 0;
+      fm.filter(m => (m.teamAId === a.id && m.teamBId === b.id) || (m.teamAId === b.id && m.teamBId === a.id)).forEach(m => {
+        if (m.teamAId === a.id) { drA += m.scoreA - m.scoreB; if (m.scoreA > m.scoreB) pA += 3; else if (m.scoreA === m.scoreB) { pA++; pB++; } else pB += 3; }
+        else { drA += m.scoreB - m.scoreA; if (m.scoreB > m.scoreA) pA += 3; else if (m.scoreA === m.scoreB) { pA++; pB++; } else pB += 3; }
+      });
+      return { pA, pB, drA };
+    };
+    const sorted = Object.values(stats).sort((a: any, b: any) => {
+      if (b.pts !== a.pts) return b.pts - a.pts;
+      const drA = (a.gf - a.ga); const drB = (b.gf - b.ga);
+      if (drA !== drB) return drB - drA;
+      const h = h2h(a, b);
+      if (h.pA !== h.pB) return h.pB - h.pA;
+      return -h.drA;
+    });
+    return { groupName, standings: sorted };
+  });
+}, [matches, teams]);
+
+const isGironi = groupStandings.length > 0;
 
   const scorerStats = useMemo(() => {
     const stats: Record<string, any> = {};
@@ -314,12 +353,27 @@ export function PublicTournamentView() {
           )}
 
           {activeTab === 'standings' && tournament.type === 'league' && (
-            <div className="overflow-x-auto -mx-3">
-              <div className="min-w-[340px] px-3">
-                <StandingsTable standings={standings} />
-              </div>
+  isGironi ? (
+    <div className="space-y-6">
+      {groupStandings.map(g => (
+        <div key={g.groupName}>
+          <h2 className="text-xs font-black uppercase tracking-widest text-indigo-600 mb-2 px-1">Girone {g.groupName}</h2>
+          <div className="overflow-x-auto -mx-3">
+            <div className="min-w-[340px] px-3">
+              <StandingsTable standings={g.standings} />
             </div>
-          )}
+          </div>
+        </div>
+      ))}
+    </div>
+  ) : (
+    <div className="overflow-x-auto -mx-3">
+      <div className="min-w-[340px] px-3">
+        <StandingsTable standings={standings} />
+      </div>
+    </div>
+  )
+)}
 
           {activeTab === 'bracket' && tournament.type === 'knockout' && (
             <motion.div key="bracket" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="overflow-x-auto pb-4 -mx-3 px-3">
