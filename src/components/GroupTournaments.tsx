@@ -485,7 +485,8 @@ export const GroupTournaments = ({ onBack, onTournamentCreated, existingTourname
                 <div className="grid md:grid-cols-2 gap-6 p-6">
                   <div>
                     <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3">Classifica</h3>
-                    <table className="w-full text-sm">
+                    <div className="overflow-x-auto -mx-2">
+                    <table className="w-full text-sm min-w-[420px] px-2">
                       <thead><tr className="text-[10px] font-black uppercase text-slate-400">
                         <th className="text-left py-2">Squadra</th>
                         <th className="text-center py-2">P</th><th className="text-center py-2">V</th>
