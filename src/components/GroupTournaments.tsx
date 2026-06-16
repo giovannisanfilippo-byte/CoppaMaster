@@ -491,9 +491,10 @@ export const GroupTournaments = ({ onBack, onTournamentCreated, existingTourname
                         <th className="text-left py-2 w-[30%]">Squadra</th>
                         <th className="text-center py-2">P</th><th className="text-center py-2">V</th>
                         <th className="text-center py-2">N</th><th className="text-center py-2">S</th>
-                        <th className="text-center py-2">GF</th><th className="text-center py-2">GS</th>
-                        <th className="text-center py-2">DR</th>
-                        <th className="text-center py-2">PT</th>
+                        <th className="text-center py-2">GF</th>
+                        <th className="text-center py-2 w-[28px]">GS</th>
+                        <th className="text-center py-2 w-[28px]">DR</th>
+                        <th className="text-center py-2 w-[28px]">PT</th>
                       </tr></thead>
                       <tbody className="divide-y divide-slate-100">
                         {getGroupStandings(group).map((s: any, i: number) => (
@@ -510,9 +511,9 @@ export const GroupTournaments = ({ onBack, onTournamentCreated, existingTourname
                             <td className="text-center py-2 text-slate-400">{s.d}</td>
                             <td className="text-center py-2 text-red-400">{s.l}</td>
                             <td className="text-center py-2">{s.gf}</td>
-                            <td className="text-center py-2">{s.ga}</td>
-                            <td className="text-center py-2">{s.gf - s.ga}</td>
-                            <td className="text-center py-2 font-black text-blue-600">{s.pts}</td>
+                            <td className="text-center py-2 w-[28px]">{s.ga}</td>
+                            <td className="text-center py-2 w-[28px]">{s.gf - s.ga}</td>
+                            <td className="text-center py-2 w-[28px] font-black text-blue-600">{s.pts}</td>
                           </tr>
                         ))}
                       </tbody>
