@@ -486,9 +486,7 @@ export const GroupTournaments = ({ onBack, onTournamentCreated, existingTourname
                   <div>
                     <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3">Classifica</h3>
                     <div className="overflow-x-auto -mx-1">
-<table className="text-[11px]" style={{minWidth: '340px'}}>
-  </table>
-</div>
+                    <table className="text-[11px]" style={{minWidth: '340px'}}>
                       <thead><tr className="text-[8px] font-black uppercase text-slate-400">
                         <th className="text-left py-2 w-[30%]">Squadra</th>
                         <th className="text-center py-2">P</th><th className="text-center py-2">V</th>
@@ -517,12 +515,11 @@ export const GroupTournaments = ({ onBack, onTournamentCreated, existingTourname
                         ))}
                       </tbody>
                     </table>
+                    </div>
                     <div className="mt-3 flex gap-3 text-[10px] font-bold text-slate-400">
                       <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-emerald-500 inline-block"></span> Qualificati</span>
                       {groups.length >= 3 && <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-amber-400 inline-block"></span> Possibile terza</span>}
                     </div>
-                  </div>
-                  <div>
   <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3">Partite</h3>
   <div className="space-y-4">
     {(() => {
