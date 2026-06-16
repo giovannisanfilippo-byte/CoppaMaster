@@ -607,7 +607,7 @@ export const GroupTournaments = ({ onBack, onTournamentCreated, existingTourname
                         <span className="text-[10px] font-black text-slate-300">VS</span>
                         <input type="number" min="0" className="w-10 h-8 text-center text-sm font-black bg-white rounded-lg border border-slate-200 outline-none" value={match.scoreB} onChange={e => updateScore(groupIdx, matchIdx, match.scoreA, parseInt(e.target.value) || 0)} />
                         <span className="text-xs font-bold text-slate-600 flex-1 truncate">{match.teamB?.name}</span>
-                        <button onClick={() => openMatchReport(match)} className="text-[10px] font-black uppercase text-blue-600 bg-blue-50 px-2 py-1 rounded-full hover:bg-blue-100 whitespace-nowrap">Referto</button>
+                        <button onClick={() => openMatchReport(match)} className="text-[9px] font-black uppercase text-blue-600 bg-blue-50 px-1.5 py-1 rounded-full hover:bg-blue-100 flex-shrink-0">R</button>
                       </div>
                     );
                   })}
