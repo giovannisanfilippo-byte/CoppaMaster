@@ -487,7 +487,7 @@ export const GroupTournaments = ({ onBack, onTournamentCreated, existingTourname
                     <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3">Classifica</h3>
                     <table className="w-full text-[11px] table-fixed">
                       <thead><tr className="text-[8px] font-black uppercase text-slate-400">
-                        <th className="text-left py-2 w-[34%]">Squadra</th>
+                        <th className="text-left py-2 w-[30%]">Squadra</th>
                         <th className="text-center py-2">P</th><th className="text-center py-2">V</th>
                         <th className="text-center py-2">N</th><th className="text-center py-2">S</th>
                         <th className="text-center py-2">GF</th><th className="text-center py-2">GS</th>
@@ -572,7 +572,7 @@ export const GroupTournaments = ({ onBack, onTournamentCreated, existingTourname
                         <span className="text-[10px] font-black text-slate-300">VS</span>
                         <input type="number" min="0" className="w-10 h-8 text-center text-sm font-black bg-white rounded-lg border border-slate-200 outline-none" value={match.scoreB} onChange={e => updateScore(groupIdx, matchIdx, match.scoreA, parseInt(e.target.value) || 0)} />
                         <span className="text-xs font-bold text-slate-600 flex-1 truncate">{match.teamB?.name}</span>
-                        <button onClick={() => openMatchReport(match)} className="text-[10px] font-black uppercase text-blue-600 bg-blue-50 px-2 py-1 rounded-full hover:bg-blue-100 whitespace-nowrap">Referto</button>
+                        <button onClick={() => openMatchReport(match)} className="text-[9px] font-black uppercase text-blue-600 bg-blue-50 px-1.5 py-1 rounded-full hover:bg-blue-100 flex-shrink-0">R</button>
                       </div>
                     );
                   })}
