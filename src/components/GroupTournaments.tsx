@@ -492,6 +492,7 @@ export const GroupTournaments = ({ onBack, onTournamentCreated, existingTourname
                         <th className="text-center py-2">P</th><th className="text-center py-2">V</th>
                         <th className="text-center py-2">N</th><th className="text-center py-2">S</th>
                         <th className="text-center py-2">GF</th><th className="text-center py-2">GS</th>
+                        <th className="text-center py-2">DR</th>
                         <th className="text-center py-2">PT</th>
                       </tr></thead>
                       <tbody className="divide-y divide-slate-100">
