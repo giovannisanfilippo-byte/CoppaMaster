@@ -511,6 +511,7 @@ export const GroupTournaments = ({ onBack, onTournamentCreated, existingTourname
                             <td className="text-center py-2 text-red-400">{s.l}</td>
                             <td className="text-center py-2">{s.gf}</td>
                             <td className="text-center py-2">{s.ga}</td>
+                            <td className="text-center py-2">{s.gf - s.ga}</td>
                             <td className="text-center py-2 font-black text-blue-600">{s.pts}</td>
                           </tr>
                         ))}
