@@ -617,9 +617,11 @@ export const GroupTournaments = ({ onBack, onTournamentCreated, existingTourname
           })}
         </>
       );
-    })()}
+   })()}
   </div>
 </div>
+                </div>
+              </div>
             ))}
 
             {activeTab === 'finale' && (
