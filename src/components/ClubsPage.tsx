@@ -99,7 +99,11 @@ export const ClubsPage = () => {
           let publicUrl = clubs.find(c => c.id === editId)?.logo_url || "";
 
           if (file) {
-            const fileName = `${Date.now()}-${file.name}`;
+            const safeName = file.name
+  .normalize('NFD')
+  .replace(/[\u0300-\u036f]/g, '')
+  .replace(/[^a-zA-Z0-9._-]/g, '_');
+const fileName = `${Date.now()}-${safeName}`;
             await supabase.storage.from('club-logos').upload(fileName, file);
             const { data } = supabase.storage.from('club-logos').getPublicUrl(fileName);
             publicUrl = data.publicUrl;
