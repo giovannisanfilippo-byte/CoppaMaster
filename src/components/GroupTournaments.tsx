@@ -23,6 +23,12 @@ export const GroupTournaments = ({ onBack, onTournamentCreated, existingTourname
   const [extraTimeB, setExtraTimeB] = useState<number>(0);
   const [tournamentName, setTournamentName] = useState<string>('');
   const [tournamentLogo, setTournamentLogo] = useState<string>('');
+const [groupMode, setGroupMode] = useState<'auto' | 'manual'>('auto');
+const [manualAssignments, setManualAssignments] = useState<Record<string, number>>({});
+const manualValid = groupMode === 'auto' || (
+  selectedTeams.every(t => manualAssignments[t.id] !== undefined && manualAssignments[t.id] < numGroups) &&
+  Array.from({ length: numGroups }, (_, g) => selectedTeams.filter(t => manualAssignments[t.id] === g).length).every(c => c >= 2)
+);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => setUser(session?.user ?? null));
@@ -131,7 +137,14 @@ for (let i = shuffled.length - 1; i > 0; i--) {
 }
       const groupNames = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
       const newGroups: any[] = Array.from({ length: numGroups }, (_, i) => ({ name: groupNames[i], teams: [], matches: [] }));
-      shuffled.forEach((team, i) => newGroups[i % numGroups].teams.push(team));
+            if (groupMode === 'manual') {
+        selectedTeams.forEach(team => {
+          const gi = manualAssignments[team.id];
+          if (gi !== undefined && newGroups[gi]) newGroups[gi].teams.push(team);
+        });
+      } else {
+        shuffled.forEach((team, i) => newGroups[i % numGroups].teams.push(team));
+      }
       for (const group of newGroups) {
         const matchesToInsert: any[] = [];
         for (let i = 0; i < group.teams.length; i++) {
@@ -493,8 +506,40 @@ for (let i = shuffled.length - 1; i > 0; i--) {
                     </select>
                   </div>
                 </div>
-                <button onClick={createGroups} disabled={selectedTeams.length < 3} className="bg-white text-blue-600 px-6 py-3 rounded-2xl font-black text-sm uppercase hover:bg-blue-50 disabled:opacity-50 transition-all">
-                  Crea Gironi Automatici
+                                <div className="flex items-center gap-4 mb-4">
+                  <label className="text-white font-bold text-sm">Composizione gironi:</label>
+                  <select value={groupMode} onChange={e => setGroupMode(e.target.value as 'auto' | 'manual')} className="bg-white text-blue-600 font-black px-4 py-2 rounded-xl outline-none">
+                    <option value="auto">Casuale</option>
+                    <option value="manual">Manuale</option>
+                  </select>
+                </div>
+                {groupMode === 'manual' && (
+                  <div className="bg-white/10 rounded-2xl p-4 mb-6 space-y-2 max-h-[320px] overflow-y-auto">
+                    {selectedTeams.length === 0 && (
+                      <p className="text-blue-100 text-sm italic">Seleziona prima le squadre dalla lista a sinistra.</p>
+                    )}
+                    {selectedTeams.map(team => (
+                      <div key={team.id} className="flex items-center justify-between gap-3">
+                        <span className="text-white font-bold text-sm truncate">{team.name}</span>
+                        <select
+                          value={manualAssignments[team.id] ?? ''}
+                          onChange={e => setManualAssignments({ ...manualAssignments, [team.id]: e.target.value === '' ? undefined as any : parseInt(e.target.value) })}
+                          className="bg-white text-blue-600 font-black px-3 py-1.5 rounded-xl outline-none text-sm"
+                        >
+                          <option value="">Girone...</option>
+                          {['A', 'B', 'C', 'D'].slice(0, numGroups).map((g, gi) => (
+                            <option key={g} value={gi}>Girone {g}</option>
+                          ))}
+                        </select>
+                      </div>
+                    ))}
+                    {selectedTeams.length > 0 && !manualValid && (
+                      <p className="text-amber-200 text-xs font-bold pt-2">Assegna tutte le squadre: ogni girone deve averne almeno 2.</p>
+                    )}
+                  </div>
+                )}
+                <button onClick={createGroups} disabled={selectedTeams.length < 3 || !manualValid} className="bg-white text-blue-600 px-6 py-3 rounded-2xl font-black text-sm uppercase hover:bg-blue-50 disabled:opacity-50 transition-all">
+                  {groupMode === 'manual' ? 'Crea Gironi Manuali' : 'Crea Gironi Automatici'}
                 </button>
               </div>
             </div>
