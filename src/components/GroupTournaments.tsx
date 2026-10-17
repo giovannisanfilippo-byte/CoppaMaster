@@ -21,6 +21,8 @@ export const GroupTournaments = ({ onBack, onTournamentCreated, existingTourname
   const [overtimeWinnerId, setOvertimeWinnerId] = useState<string>('');
   const [extraTimeA, setExtraTimeA] = useState<number>(0);
   const [extraTimeB, setExtraTimeB] = useState<number>(0);
+  const [tournamentName, setTournamentName] = useState<string>('');
+  const [tournamentLogo, setTournamentLogo] = useState<string>('');
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => setUser(session?.user ?? null));
@@ -88,12 +90,36 @@ export const GroupTournaments = ({ onBack, onTournamentCreated, existingTourname
     }
   };
 
+    const handleLogoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        const max = 200;
+        const scale = Math.min(max / img.width, max / img.height, 1);
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.round(img.width * scale);
+        canvas.height = Math.round(img.height * scale);
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        setTournamentLogo(canvas.toDataURL('image/jpeg', 0.7));
+      };
+      img.src = reader.result as string;
+    };
+    reader.readAsDataURL(file);
+  };
+
   const createGroups = async () => {
     if (selectedTeams.length < 3 || !user) return;
     try {
       const { data: tournament, error: tErr } = await supabase
         .from('tournaments')
-        .insert([{ name: `Torneo Gironi ${new Date().toLocaleDateString('it-IT')}`, type: 'league', max_teams: selectedTeams.length, status: 'attivo', user_id: user.id }])
+        .insert([{ name: tournamentName.trim() || `Torneo Gironi ${new Date().toLocaleDateString('it-IT')}`, type: 'league', max_teams: selectedTeams.length, status: 'attivo', user_id: user.id, logo_url: tournamentLogo || null }])
         .select().single();
       if (tErr) throw tErr;
       setTournamentId(tournament.id);
@@ -437,7 +463,22 @@ for (let i = shuffled.length - 1; i > 0; i--) {
               <div className="bg-blue-600 p-8 rounded-3xl text-white shadow-xl shadow-blue-500/20">
                 <h3 className="text-xl font-bold mb-2">Pronto per iniziare?</h3>
                 <p className="text-blue-100 mb-6">Hai selezionato {selectedTeams.length} squadre.</p>
-                <div className="flex flex-col gap-4 mb-6">
+                                <div className="flex flex-col gap-4 mb-6">
+                  <div className="flex flex-col gap-2">
+                    <label className="text-white font-bold text-sm">Nome del torneo:</label>
+                    <input
+                      type="text"
+                      value={tournamentName}
+                      onChange={e => setTournamentName(e.target.value)}
+                      placeholder="Es. Coppa Master 2026"
+                      className="bg-white text-slate-800 font-bold px-4 py-2 rounded-xl outline-none placeholder:text-slate-300"
+                    />
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <label className="text-white font-bold text-sm">Logo torneo:</label>
+                    <input type="file" accept="image/*" onChange={handleLogoSelect} className="text-xs text-blue-100 file:mr-3 file:px-3 file:py-2 file:rounded-xl file:border-0 file:bg-white file:text-blue-600 file:font-black" />
+                    {tournamentLogo && <img src={tournamentLogo} alt="Anteprima logo" className="w-12 h-12 rounded-lg object-cover border border-white/30" />}
+                  </div>
                   <div className="flex items-center gap-4">
                     <label className="text-white font-bold text-sm">Numero di gironi:</label>
                     <select value={numGroups} onChange={e => setNumGroups(parseInt(e.target.value))} className="bg-white text-blue-600 font-black px-4 py-2 rounded-xl outline-none">
