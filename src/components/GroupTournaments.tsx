@@ -304,7 +304,13 @@ for (let i = shuffled.length - 1; i > 0; i--) {
     let bracketSize = 2;
     while (bracketSize < qualifiedTeams.length) bracketSize *= 2;
     if (qualifiedTeams.length < bracketSize && thirds.length > 0) {
-      const sortedThirds = thirds.sort((a: any, b: any) => b.pts - a.pts || (b.gf - b.ga) - (a.gf - a.ga));
+      const sortedThirds = thirds
+  .map((t: any) => ({ ...t, tiebreak: Math.random() }))
+  .sort((a: any, b: any) => {
+    const ppgA = a.p > 0 ? a.pts / a.p : 0;
+    const ppgB = b.p > 0 ? b.pts / b.p : 0;
+    return (ppgB - ppgA) || ((b.gf - b.ga) - (a.gf - a.ga)) || (b.gf - a.gf) || (b.tiebreak - a.tiebreak);
+  });
       qualifiedTeams = [...qualifiedTeams, ...sortedThirds.slice(0, bracketSize - qualifiedTeams.length)];
     }
     const matchups: any[] = [];
