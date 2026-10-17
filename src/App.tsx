@@ -144,9 +144,13 @@ function PrivateApp() {
       for (let r = 0; r < roundsPerLeg; r++) {
         const roundNumber = leg === 0 ? r + 1 : roundsPerLeg + r + 1;
         for (let i = 0; i < numTeams / 2; i++) {
-          const teamA = teamIds[i]; const teamB = teamIds[numTeams - 1 - i];
-          if (teamA !== 'BYE' && teamB !== 'BYE') {
-            newMatches.push({ id: '', tournamentId: activeTournamentId!, teamAId: leg === 0 ? teamA : teamB, teamBId: leg === 0 ? teamB : teamA, scoreA: 0, scoreB: 0, status: 'scheduled', round: roundNumber, matchType: 'league_match', isReturnMatch: leg === 1 });
+                    const slotA = teamIds[i]; const slotB = teamIds[numTeams - 1 - i];
+          if (slotA !== 'BYE' && slotB !== 'BYE') {
+            // la squadra fissa (i === 0) alterna a ogni giornata, le altre alternano in base alla posizione
+            const flip = i === 0 ? r % 2 === 1 : i % 2 === 1;
+            const homeAndata = flip ? slotB : slotA;
+            const awayAndata = flip ? slotA : slotB;
+            newMatches.push({ id: '', tournamentId: activeTournamentId!, teamAId: leg === 0 ? homeAndata : awayAndata, teamBId: leg === 0 ? awayAndata : homeAndata, scoreA: 0, scoreB: 0, status: 'scheduled', round: roundNumber, matchType: 'league_match', isReturnMatch: leg === 1 });
           }
         }
         teamIds.splice(1, 0, teamIds.pop()!);
