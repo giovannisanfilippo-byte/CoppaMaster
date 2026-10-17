@@ -98,7 +98,11 @@ export const GroupTournaments = ({ onBack, onTournamentCreated, existingTourname
       if (tErr) throw tErr;
       setTournamentId(tournament.id);
       await supabase.from('tournament_teams').insert(selectedTeams.map(t => ({ tournament_id: tournament.id, club_id: t.id })));
-      const shuffled = [...selectedTeams].sort(() => Math.random() - 0.5);
+      const shuffled = [...selectedTeams];
+for (let i = shuffled.length - 1; i > 0; i--) {
+  const j = Math.floor(Math.random() * (i + 1));
+  [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+}
       const groupNames = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
       const newGroups: any[] = Array.from({ length: numGroups }, (_, i) => ({ name: groupNames[i], teams: [], matches: [] }));
       shuffled.forEach((team, i) => newGroups[i % numGroups].teams.push(team));
