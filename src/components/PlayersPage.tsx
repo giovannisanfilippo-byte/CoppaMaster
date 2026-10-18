@@ -37,12 +37,16 @@ export const PlayersPage = () => {
         }).eq('id', editPlayerId);
         setEditPlayerId(null);
       } else {
-  // Controlla se esiste già un giocatore con lo stesso ID tesserato
-  const { data: existing } = await supabase
+    // Controlla se esiste già un giocatore con lo stesso ID (ignora maiuscole/minuscole e spazi)
+  const idPulito = tesseratoId.trim().toLowerCase();
+  const { data: tuttiGiocatori } = await supabase
     .from('players')
-    .select('id, name, team_id')
-    .eq('tesserato_id', tesseratoId)
-    .maybeSingle();
+    .select('id, name, team_id, tesserato_id, player_external_id')
+    .limit(10000);
+  const existing = (tuttiGiocatori || []).find((p: any) =>
+    (p.tesserato_id || '').trim().toLowerCase() === idPulito ||
+    (p.player_external_id || '').trim().toLowerCase() === idPulito
+  ) || null;
 
   if (existing) {
     const clubEsistente = teams.find(t => t.id === existing.team_id);
@@ -53,7 +57,7 @@ export const PlayersPage = () => {
   }
 
   await supabase.from('players').insert([
-    { name: playerName, tesserato_id: tesseratoId, team_id: selectedTeam }
+        { name: playerName, tesserato_id: tesseratoId.trim(), team_id: selectedTeam }
   ]);
 }
 setPlayerName("");
