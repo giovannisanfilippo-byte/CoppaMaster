@@ -8,7 +8,7 @@ interface MatchReportFormProps {
   teams: any[];
   players: any[];
   events: any[];
-  onUpdateScore: (scoreA: number, scoreB: number, overtimeType?: string, winnerId?: string) => void;
+  onUpdateScore: (scoreA: number, scoreB: number, overtimeType?: string, winnerId?: string, forfeit?: string) => void;
   onAddEvent: (playerId: string, type: 'gol' | 'assist') => void;
   onRemoveEvent: (eventId: string) => void;
   onResetMatch: () => void;
@@ -23,6 +23,15 @@ export function MatchReportForm({ match, teams, players, events, onUpdateScore, 
   const [overtimeWinnerId, setOvertimeWinnerId] = useState<string>(match.winnerId || '');
   const [extraTimeA, setExtraTimeA] = useState<number>(match.extraTimeA || 0);
   const [extraTimeB, setExtraTimeB] = useState<number>(match.extraTimeB || 0);
+const [forfeit, setForfeit] = useState<string>(match.forfeit || '');
+const toggleForfeit = (side: 'home' | 'away') => {
+  if (forfeit === side) { setForfeit(''); return; }
+  setForfeit(side);
+  setScoreA(side === 'home' ? 1 : 0);
+  setScoreB(side === 'home' ? 0 : 1);
+  setOvertimeType('');
+  setOvertimeWinnerId('');
+};
 
   const teamA = teams.find((t: any) => t.id === match.teamAId);
   const teamB = teams.find((t: any) => t.id === match.teamBId);
@@ -36,20 +45,25 @@ export function MatchReportForm({ match, teams, players, events, onUpdateScore, 
   const isValidA = teamAGoals === scoreA;
   const isValidB = teamBGoals === scoreB;
 
-  const handleSave = () => {
-  const isDraw = scoreA === scoreB;
-  const isKnockout = match.matchType === 'bracket_match';
-  if (isDraw && isKnockout && !overtimeType) return;
+    const handleSave = () => {
+    if (forfeit) {
+      onUpdateScore(scoreA, scoreB, undefined, undefined, forfeit);
+      onClose();
+      return;
+    }
+    const isDraw = scoreA === scoreB;
+    const isKnockout = match.matchType === 'bracket_match';
+    if (isDraw && isKnockout && !overtimeType) return;
 
-  const totalA = scoreA + (overtimeType === 'extra_time' ? extraTimeA : 0);
-  const totalB = scoreB + (overtimeType === 'extra_time' ? extraTimeB : 0);
-  const autoWinner = totalA > totalB ? match.teamAId : totalB > totalA ? match.teamBId : null;
-  const finalWinnerId = autoWinner || (isDraw && isKnockout ? overtimeWinnerId : undefined);
+    const totalA = scoreA + (overtimeType === 'extra_time' ? extraTimeA : 0);
+    const totalB = scoreB + (overtimeType === 'extra_time' ? extraTimeB : 0);
+    const autoWinner = totalA > totalB ? match.teamAId : totalB > totalA ? match.teamBId : null;
+    const finalWinnerId = autoWinner || (isDraw && isKnockout ? overtimeWinnerId : undefined);
 
-  if (isDraw && isKnockout && !finalWinnerId) return;
-  onUpdateScore(totalA, totalB, isDraw && isKnockout ? overtimeType : undefined, finalWinnerId || undefined);
-  onClose();
-};
+    if (isDraw && isKnockout && !finalWinnerId) return;
+    onUpdateScore(totalA, totalB, isDraw && isKnockout ? overtimeType : undefined, finalWinnerId || undefined);
+    onClose();
+  };
 
   const handleReset = () => {
     onResetMatch();
