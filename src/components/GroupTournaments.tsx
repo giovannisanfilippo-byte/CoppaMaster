@@ -77,7 +77,7 @@ const manualValid = groupMode === 'auto' || (
         const groupTeams = groupTeamIds.map(id => teamsMap[id]).filter(Boolean);
         const matches = gMatches.map(m => ({
           id: m.id, teamA: teamsMap[m.team_a_id], teamB: teamsMap[m.team_b_id],
-          scoreA: m.score_a, scoreB: m.score_b, played: m.status === 'finished', isReturn: m.is_return_match
+          scoreA: m.score_a, scoreB: m.score_b, played: m.status === 'finished', isReturn: m.is_return_match, forfeit: m.forfeit
         }));
         return { name: groupName, teams: groupTeams, matches };
       });
@@ -89,7 +89,7 @@ const manualValid = groupMode === 'auto' || (
             id: m.id, teamA: teamsMap[m.team_a_id] || null, teamB: teamsMap[m.team_b_id] || null,
             scoreA: m.score_a, scoreB: m.score_b, played: m.status === 'finished',
             round: m.round, positionInRound: m.position_in_round, nextMatchId: m.next_match_id,
-            overtimeType: m.overtime_type, winnerId: m.winner_id, extraTimeA: m.extra_time_a || 0, extraTimeB: m.extra_time_b || 0
+            overtimeType: m.overtime_type, winnerId: m.winner_id, extraTimeA: m.extra_time_a || 0, extraTimeB: m.extra_time_b || 0, forfeit: m.forfeit
           }));
         setPlayoffMatches(loadedPlayoffMatches);
         setPlayoffGenerated(true);
@@ -162,7 +162,7 @@ for (let i = shuffled.length - 1; i > 0; i--) {
         if (savedMatches) {
           group.matches = savedMatches.map((m: any) => ({
             id: m.id, teamA: group.teams.find((t: any) => t.id === m.team_a_id), teamB: group.teams.find((t: any) => t.id === m.team_b_id),
-            scoreA: m.score_a, scoreB: m.score_b, played: m.status === 'finished', isReturn: m.is_return_match
+            scoreA: m.score_a, scoreB: m.score_b, played: m.status === 'finished', isReturn: m.is_return_match, forfeit: m.forfeit
           }));
         }
       }
@@ -200,7 +200,7 @@ for (let i = shuffled.length - 1; i > 0; i--) {
       const isPlayoffMatch = typeof match.round !== 'undefined';
 
       await supabase.from('matches').update({
-        score_a: 0, score_b: 0, status: 'scheduled',
+        score_a: 0, score_b: 0, status: 'scheduled', forfeit: null,
         overtime_type: null, winner_id: null, extra_time_a: 0, extra_time_b: 0
       }).eq('id', match.id);
 
@@ -222,7 +222,7 @@ for (let i = shuffled.length - 1; i > 0; i--) {
       } else {
         const newGroups = groups.map(g => ({
           ...g,
-          matches: g.matches.map((m: any) => m.id === match.id ? { ...m, scoreA: 0, scoreB: 0, played: false } : m)
+          matches: g.matches.map((m: any) => m.id === match.id ? { ...m, scoreA: 0, scoreB: 0, played: false, forfeit: null } : m)
         }));
         setGroups(newGroups);
       }
@@ -252,6 +252,27 @@ for (let i = shuffled.length - 1; i > 0; i--) {
     } catch (error: any) {
       alert('Errore sostituzione squadra: ' + error.message);
     }
+  };
+
+    const toggleForfeit = async (side: 'home' | 'away') => {
+    if (!selectedMatch) return;
+    const isPlayoff = typeof selectedMatch.round !== 'undefined';
+    const newForfeit = selectedMatch.forfeit === side ? null : side;
+    const sA = newForfeit === 'home' ? 1 : newForfeit === 'away' ? 0 : selectedMatch.scoreA;
+    const sB = newForfeit === 'away' ? 1 : newForfeit === 'home' ? 0 : selectedMatch.scoreB;
+    const id = selectedMatch.id;
+    if (isPlayoff) {
+      const idx = playoffMatches.findIndex(m => m.id === id);
+      await updatePlayoffScore(idx, sA, sB);
+      setPlayoffMatches(prev => prev.map(m => m.id === id ? { ...m, forfeit: newForfeit } : m));
+    } else {
+      const gi = groups.findIndex(g => g.matches.some((m: any) => m.id === id));
+      const mi = groups[gi].matches.findIndex((m: any) => m.id === id);
+      await updateScore(gi, mi, sA, sB);
+      setGroups(prev => prev.map(g => ({ ...g, matches: g.matches.map((m: any) => m.id === id ? { ...m, forfeit: newForfeit } : m) })));
+    }
+    await supabase.from('matches').update({ forfeit: newForfeit }).eq('id', id);
+    setSelectedMatch((prev: any) => ({ ...prev, scoreA: sA, scoreB: sB, forfeit: newForfeit }));
   };
 
   const addEvent = async (playerId: string, type: 'gol' | 'assist') => {
@@ -690,6 +711,7 @@ for (let i = shuffled.length - 1; i > 0; i--) {
                         <span className="text-[10px] font-black text-slate-300">VS</span>
                         <input type="number" min="0" className="w-10 h-8 text-center text-sm font-black bg-white rounded-lg border border-slate-200 outline-none" value={match.scoreB} onChange={e => updateScore(groupIdx, matchIdx, match.scoreA, parseInt(e.target.value) || 0)} />
                         <span className="text-xs font-bold text-slate-600 flex-1 truncate">{match.teamB?.name}</span>
+{match.forfeit && <span className="text-[8px] font-black px-1 py-0.5 rounded bg-amber-100 text-amber-700 flex-shrink-0">TAV.</span>}
                         <button onClick={() => openMatchReport(match)} className="text-[9px] font-black uppercase text-blue-600 bg-blue-50 px-1.5 py-1 rounded-full hover:bg-blue-100 flex-shrink-0">R</button>
                       </div>
                     );
@@ -725,6 +747,7 @@ for (let i = shuffled.length - 1; i > 0; i--) {
                         <span className="text-[10px] font-black text-slate-300">VS</span>
                         <input type="number" min="0" className="w-10 h-8 text-center text-sm font-black bg-white rounded-lg border border-slate-200 outline-none" value={match.scoreB} onChange={e => updateScore(groupIdx, matchIdx, match.scoreA, parseInt(e.target.value) || 0)} />
                         <span className="text-xs font-bold text-slate-600 flex-1 truncate">{match.teamB?.name}</span>
+{match.forfeit && <span className="text-[8px] font-black px-1 py-0.5 rounded bg-amber-100 text-amber-700 flex-shrink-0">TAV.</span>}
                         <button onClick={() => openMatchReport(match)} className="text-[9px] font-black uppercase text-blue-600 bg-blue-50 px-1.5 py-1 rounded-full hover:bg-blue-100 flex-shrink-0">R</button>
                       </div>
                     );
@@ -774,7 +797,8 @@ for (let i = shuffled.length - 1; i > 0; i--) {
                                         <input type="number" min="0" className="w-10 h-8 text-center text-sm font-black bg-white rounded-lg border border-slate-200 outline-none ml-2" value={match.scoreB} onChange={e => updatePlayoffScore(matchIdx, match.scoreA, parseInt(e.target.value) || 0)} />
                                       </div>
                                       <div className="px-4 py-2 bg-slate-50 border-t border-slate-100 flex justify-center">
-                                        <button onClick={() => openMatchReport(match)} className="text-[10px] font-black uppercase tracking-widest text-indigo-600 hover:text-indigo-800 transition-colors">Referto Marcatori</button>
+                                        {match.forfeit && <span className="text-[8px] font-black px-1.5 py-0.5 rounded-md bg-amber-100 text-amber-700 mr-2">TAV.</span>}
+<button onClick={() => openMatchReport(match)} className="text-[10px] font-black uppercase tracking-widest text-indigo-600 hover:text-indigo-800 transition-colors">Referto Marcatori</button>
                                       </div>
                                     </div>
                                   );
@@ -881,7 +905,17 @@ for (let i = shuffled.length - 1; i > 0; i--) {
                 <div className="flex-1 font-black text-lg">{selectedMatch.teamB?.name}</div>
               </div>
             </div>
-            {typeof selectedMatch.round !== 'undefined' && selectedMatch.teamA && selectedMatch.teamB && selectedMatch.scoreA === selectedMatch.scoreB && (
+            <div className="px-6 pt-4 flex justify-between gap-4">
+  <label className="flex items-center gap-2 text-[10px] font-black uppercase tracking-wider text-slate-500 cursor-pointer">
+    <input type="checkbox" checked={selectedMatch.forfeit === 'home'} onChange={() => toggleForfeit('home')} className="w-4 h-4 accent-amber-500" />
+    Tav. casa
+  </label>
+  <label className="flex items-center gap-2 text-[10px] font-black uppercase tracking-wider text-slate-500 cursor-pointer">
+    <input type="checkbox" checked={selectedMatch.forfeit === 'away'} onChange={() => toggleForfeit('away')} className="w-4 h-4 accent-amber-500" />
+    Tav. ospite
+  </label>
+</div>
+{typeof selectedMatch.round !== 'undefined' && selectedMatch.teamA && selectedMatch.teamB && selectedMatch.scoreA === selectedMatch.scoreB && (
   <div className="m-6 mb-0 p-4 bg-indigo-50 border border-indigo-100 rounded-2xl space-y-3">
     <p className="text-indigo-700 text-xs font-black uppercase tracking-widest">Pareggio — Come si decide?</p>
     <div className="flex gap-2">
