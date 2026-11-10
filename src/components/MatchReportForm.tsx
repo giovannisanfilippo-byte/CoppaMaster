@@ -109,12 +109,16 @@ const toggleForfeit = (side: 'home' | 'away') => {
                   value={scoreB}
                   onChange={(e) => setScoreB(parseInt(e.target.value) || 0)}
                 />
+                <label className="flex items-center gap-1.5 mt-2 text-[10px] font-black uppercase tracking-wider text-slate-300 cursor-pointer">
+                  <input type="checkbox" checked={forfeit === 'away'} onChange={() => toggleForfeit('away')} className="w-4 h-4 accent-amber-500" />
+                  Tav. ospite
+                </label>
               </div>
             </div>
           </div>
 
           <div className="flex-1 overflow-y-auto p-6 space-y-8">
-            {(!isValidA || !isValidB) && (
+            {!forfeit && (!isValidA || !isValidB) && (
               <div className="p-4 bg-amber-50 border border-amber-100 rounded-2xl flex items-start gap-3 text-amber-700 text-xs font-bold">
                 <AlertCircle className="w-4 h-4 flex-shrink-0" />
                 <p>
