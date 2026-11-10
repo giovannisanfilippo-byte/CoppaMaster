@@ -56,7 +56,7 @@ export function PublicTournamentView() {
 
       const { data: matchesData } = await supabase.from('matches').select('*').eq('tournament_id', tournamentId).order('round', { ascending: true });
       if (matchesData) {
-        setMatches(matchesData.map((m: any) => ({ id: m.id, tournamentId: m.tournament_id, teamAId: m.team_a_id, teamBId: m.team_b_id, scoreA: m.score_a, scoreB: m.score_b, status: m.status, round: m.round, matchType: m.match_type, isReturnMatch: m.is_return_match, nextMatchId: m.next_match_id, positionInRound: m.position_in_round, overtimeType: m.overtime_type, winnerId: m.winner_id, extraTimeA: m.extra_time_a || 0, extraTimeB: m.extra_time_b || 0 })));
+        setMatches(matchesData.map((m: any) => ({ id: m.id, tournamentId: m.tournament_id, teamAId: m.team_a_id, teamBId: m.team_b_id, scoreA: m.score_a, scoreB: m.score_b, status: m.status, round: m.round, matchType: m.match_type, isReturnMatch: m.is_return_match, nextMatchId: m.next_match_id, positionInRound: m.position_in_round, overtimeType: m.overtime_type, winnerId: m.winner_id, forfeit: m.forfeit, extraTimeA: m.extra_time_a || 0, extraTimeB: m.extra_time_b || 0 })));
         const matchIds = matchesData.map((m: any) => m.id);
         if (matchIds.length > 0) {
           const { data: eventsData } = await supabase.from('match_events').select('*').in('match_id', matchIds);
@@ -242,6 +242,9 @@ const isGironi = groupStandings.length > 0;
           <div className="w-7 h-7 flex items-center justify-center text-sm font-black bg-slate-50 rounded-lg border border-slate-100">{match.status === 'finished' ? match.scoreA : '-'}</div>
           <div className="text-[7px] font-black text-slate-300 px-0.5">-</div>
           <div className="w-7 h-7 flex items-center justify-center text-sm font-black bg-slate-50 rounded-lg border border-slate-100">{match.status === 'finished' ? match.scoreB : '-'}</div>
+          {match.status === 'finished' && match.forfeit && (
+            <span className="ml-1 text-[8px] font-black px-1.5 py-0.5 rounded-md bg-amber-100 text-amber-700">TAV.</span>
+          )}
         </div>
         <div className="flex-1 flex items-center gap-1 min-w-0">
           {teamB?.logoUrl
