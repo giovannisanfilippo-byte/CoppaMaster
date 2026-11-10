@@ -538,6 +538,9 @@ const um = matches.map(m => m.id === matchId ? { ...m, scoreA, scoreB, status: '
   )}
   <span className="font-black text-slate-900 ml-1 text-sm">{match.status === 'finished' ? match.scoreA : '-'}</span>
 </div>
+{match.status === 'finished' && match.forfeit && (
+  <div className="text-center"><span className="text-[8px] font-black px-1.5 py-0.5 rounded-md bg-amber-100 text-amber-700">TAV.</span></div>
+)}
 <div className="h-px bg-slate-100" />
 <div className="flex justify-between items-center">
   <span className={`text-xs font-bold truncate flex-1 ${match.status === 'finished' && match.scoreB > match.scoreA ? 'text-indigo-600' : match.status === 'finished' && match.scoreA === match.scoreB && match.winnerId === match.teamBId ? 'text-indigo-600' : 'text-slate-600'}`}>{tB?.name || '---'}</span>
