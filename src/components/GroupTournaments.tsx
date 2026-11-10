@@ -24,6 +24,9 @@ export const GroupTournaments = ({ onBack, onTournamentCreated, existingTourname
   const [tournamentName, setTournamentName] = useState<string>('');
   const [tournamentLogo, setTournamentLogo] = useState<string>('');
 const [groupMode, setGroupMode] = useState<'auto' | 'manual'>('auto');
+const [isReplaceOpen, setIsReplaceOpen] = useState(false);
+const [replaceOldId, setReplaceOldId] = useState('');
+const [replaceNewId, setReplaceNewId] = useState('');
 const [manualAssignments, setManualAssignments] = useState<Record<string, number>>({});
 const manualValid = groupMode === 'auto' || (
   selectedTeams.every(t => manualAssignments[t.id] !== undefined && manualAssignments[t.id] < numGroups) &&
@@ -235,6 +238,21 @@ for (let i = shuffled.length - 1; i > 0; i--) {
       alert('Errore reset partita: ' + error.message);
     }
 };
+
+    const replaceTeam = async () => {
+    if (!tournamentId || !replaceOldId || !replaceNewId) return;
+    try {
+      await supabase.from('matches').update({ team_a_id: replaceNewId }).eq('tournament_id', tournamentId).eq('team_a_id', replaceOldId);
+      await supabase.from('matches').update({ team_b_id: replaceNewId }).eq('tournament_id', tournamentId).eq('team_b_id', replaceOldId);
+      await supabase.from('tournament_teams').update({ club_id: replaceNewId }).eq('tournament_id', tournamentId).eq('club_id', replaceOldId);
+      await loadExistingTournament(tournamentId);
+      setIsReplaceOpen(false);
+      setReplaceOldId('');
+      setReplaceNewId('');
+    } catch (error: any) {
+      alert('Errore sostituzione squadra: ' + error.message);
+    }
+  };
 
   const addEvent = async (playerId: string, type: 'gol' | 'assist') => {
     if (!selectedMatch || !user) return;
@@ -554,6 +572,7 @@ for (let i = shuffled.length - 1; i > 0; i--) {
           <div className="space-y-6">
             <div className="flex items-center gap-4 flex-wrap">
               <button onClick={() => setGroups([])} className="text-sm font-bold text-slate-400 hover:text-slate-600">← Riconfigura gironi</button>
+              <button onClick={() => setIsReplaceOpen(true)} className="text-sm font-bold text-amber-600 hover:text-amber-700">🔄 Sostituisci squadra</button>
               <div className="flex gap-2 bg-white border border-slate-200 p-1 rounded-2xl flex-wrap">
                 {(['gironi', 'marcatori', 'assist'] as const).map(tab => (
                   <button key={tab} onClick={() => setActiveTab(tab)}
@@ -817,6 +836,32 @@ for (let i = shuffled.length - 1; i > 0; i--) {
           </div>
         )}
       </div>
+
+            {isReplaceOpen && (
+        <div className="fixed inset-0 z-[200] bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white w-full max-w-md rounded-3xl p-6 shadow-2xl space-y-5">
+            <h2 className="text-lg font-black text-slate-900">Sostituisci Squadra</h2>
+            <div className="space-y-2">
+              <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Squadra da sostituire</label>
+              <select className="w-full p-3 bg-slate-50 rounded-2xl border border-slate-200 outline-none font-bold text-sm" value={replaceOldId} onChange={e => setReplaceOldId(e.target.value)}>
+                <option value="">Scegli...</option>
+                {groups.flatMap(g => g.teams.map((t: any) => <option key={t.id} value={t.id}>{t.name} (Girone {g.name})</option>))}
+              </select>
+            </div>
+            <div className="space-y-2">
+              <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Nuova squadra</label>
+              <select className="w-full p-3 bg-slate-50 rounded-2xl border border-slate-200 outline-none font-bold text-sm" value={replaceNewId} onChange={e => setReplaceNewId(e.target.value)}>
+                <option value="">Scegli...</option>
+                {teams.filter(t => !groups.some(g => g.teams.some((gt: any) => gt.id === t.id))).map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+              </select>
+            </div>
+            <div className="flex gap-3">
+              <button onClick={() => setIsReplaceOpen(false)} className="flex-1 py-3 rounded-2xl font-black text-sm text-slate-400 bg-slate-100">Annulla</button>
+              <button disabled={!replaceOldId || !replaceNewId} onClick={replaceTeam} className="flex-1 bg-indigo-600 text-white py-3 rounded-2xl font-black text-sm disabled:opacity-50">Sostituisci</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {selectedMatch && (
         <div className="fixed inset-0 z-[100] bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4">
