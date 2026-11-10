@@ -99,6 +99,10 @@ const toggleForfeit = (side: 'home' | 'away') => {
                   value={scoreA}
                   onChange={(e) => setScoreA(parseInt(e.target.value) || 0)}
                 />
+                  <label className="flex items-center justify-end gap-1.5 mt-2 text-[10px] font-black uppercase tracking-wider text-slate-300 cursor-pointer">
+                  <input type="checkbox" checked={forfeit === 'home'} onChange={() => toggleForfeit('home')} className="w-4 h-4 accent-amber-500" />
+                  Tav. casa
+                </label>
               </div>
               <div className="text-xl font-black text-white/20">VS</div>
               <div className="flex-1 text-left">
