@@ -478,6 +478,9 @@ const isGironi = groupStandings.length > 0;
     <span className="font-black text-slate-900 ml-1 text-sm">{match.status === 'finished' ? match.scoreA : '-'}</span>
   </div>
 </div>
+{match.status === 'finished' && match.forfeit && (
+  <div className="text-center"><span className="text-[8px] font-black px-1.5 py-0.5 rounded-md bg-amber-100 text-amber-700">TAV.</span></div>
+)}
 <div className="h-px bg-slate-100" />
 <div className="flex items-center justify-between px-3 py-2">
   <div className="flex items-center gap-1.5 min-w-0">
