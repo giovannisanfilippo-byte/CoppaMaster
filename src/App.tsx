@@ -88,7 +88,7 @@ function PrivateApp() {
       if (ttData) setTournamentTeams(prev => [...prev.filter(tt => tt.tournamentId !== tournamentId), ...ttData.map((tt: any) => ({ tournamentId: tt.tournament_id, teamId: tt.club_id }))]);
       const { data: matchesData } = await supabase.from('matches').select('*').eq('tournament_id', tournamentId).order('round', { ascending: true });
       if (matchesData) {
-        setMatches(prev => [...prev.filter(m => m.tournamentId !== tournamentId), ...matchesData.map((m: any) => ({ id: m.id, tournamentId: m.tournament_id, teamAId: m.team_a_id, teamBId: m.team_b_id, scoreA: m.score_a, scoreB: m.score_b, status: m.status, round: m.round, matchType: m.match_type, isReturnMatch: m.is_return_match, nextMatchId: m.next_match_id, positionInRound: m.position_in_round, overtimeType: m.overtime_type, winnerId: m.winner_id, extraTimeA: m.extra_time_a || 0, extraTimeB: m.extra_time_b || 0 }))]);
+        setMatches(prev => [...prev.filter(m => m.tournamentId !== tournamentId), ...matchesData.map((m: any) => ({ id: m.id, tournamentId: m.tournament_id, teamAId: m.team_a_id, teamBId: m.team_b_id, scoreA: m.score_a, scoreB: m.score_b, status: m.status, round: m.round, matchType: m.match_type, isReturnMatch: m.is_return_match, nextMatchId: m.next_match_id, positionInRound: m.position_in_round, overtimeType: m.overtime_type, winnerId: m.winner_id, forfeit: m.forfeit, extraTimeA: m.extra_time_a || 0, extraTimeB: m.extra_time_b || 0 }))]);
         const matchIds = matchesData.map((m: any) => m.id);
         if (matchIds.length > 0) {
           const { data: eventsData } = await supabase.from('match_events').select('*').in('match_id', matchIds);
@@ -272,7 +272,7 @@ function PrivateApp() {
     const currentMatch = matches.find(m => m.id === matchId);
 
     for (const event of events.filter(e => e.matchId === matchId)) await supabase.from('match_events').delete().eq('id', event.id);
-    await supabase.from('matches').update({ score_a: 0, score_b: 0, status: 'scheduled' }).eq('id', matchId);
+    await supabase.from('matches').update({ score_a: 0, score_b: 0, status: 'scheduled', forfeit: null }).eq('id', matchId);
 
     // Se esiste un turno successivo, pulisce lo slot occupato dal vincitore
     if (currentMatch?.nextMatchId) {
@@ -292,10 +292,10 @@ function PrivateApp() {
   } catch (error) { console.error('Error resetting match:', error); }
 };
 
-  const updateMatchScore = async (matchId: string, scoreA: number, scoreB: number, overtimeType?: string, overrideWinnerId?: string) => {
+  const updateMatchScore = async (matchId: string, scoreA: number, scoreB: number, overtimeType?: string, overrideWinnerId?: string, forfeit?: string) => {
     try {
-      await updateMatchScoreDB(matchId, scoreA, scoreB, 'finished', overtimeType, overrideWinnerId);
-      const um = matches.map(m => m.id === matchId ? { ...m, scoreA, scoreB, status: 'finished' as const } : m);
+      await updateMatchScoreDB(matchId, scoreA, scoreB, 'finished', overtimeType, overrideWinnerId, forfeit);
+const um = matches.map(m => m.id === matchId ? { ...m, scoreA, scoreB, status: 'finished' as const, forfeit: forfeit || null } : m);
       if (tournament?.type === 'knockout') {
         const match = um.find(m => m.id === matchId);
         if (match && match.nextMatchId) {
@@ -559,7 +559,7 @@ function PrivateApp() {
       </main>
 
       <AnimatePresence>
-        {selectedMatchId && <MatchReportForm match={matches.find(m => m.id === selectedMatchId)!} teams={teams} players={players} events={events.filter(e => e.matchId === selectedMatchId)} onUpdateScore={(sA, sB, ot, wId) => updateMatchScore(selectedMatchId, sA, sB, ot, wId)} onAddEvent={(pId, type) => addMatchEvent(selectedMatchId, pId, type)} onRemoveEvent={removeMatchEvent} onResetMatch={() => resetMatch(selectedMatchId!)} onClose={() => setSelectedMatchId(null)} />}
+        {selectedMatchId && <MatchReportForm match={matches.find(m => m.id === selectedMatchId)!} teams={teams} players={players} events={events.filter(e => e.matchId === selectedMatchId)} onUpdateScore={(sA, sB, ot, wId, fg) => updateMatchScore(selectedMatchId, sA, sB, ot, wId, fg)} onAddEvent={(pId, type) => addMatchEvent(selectedMatchId, pId, type)} onRemoveEvent={removeMatchEvent} onResetMatch={() => resetMatch(selectedMatchId!)} onClose={() => setSelectedMatchId(null)} />}
       </AnimatePresence>
 
       {isReplaceTeamOpen && (
